@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="ds_modules_101",
-    version="0.0.1",
+    version="0.0.3",
     author="TanselArif-21",
     author_email="tanselarif21@gmail.com",
     description="A small package to help with some routine Data Science activities",
@@ -19,4 +19,5 @@ setuptools.setup(
         "Operating System :: OS Independent",
     ],
     python_requires='>=3.6',
+    include_package_data=True,
 )
