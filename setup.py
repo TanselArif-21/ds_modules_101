@@ -1,23 +1,26 @@
-import setuptools
+from setuptools import setup, find_packages
 
-with open("README.md", "r") as fh:
-    long_description = fh.read()
+with open('README.md') as readme_file:
+    README = readme_file.read()
 
-setuptools.setup(
-    name="ds_modules_101",
-    version="0.0.3",
-    author="TanselArif-21",
-    author_email="tanselarif21@gmail.com",
+setup_args = dict(
+    name='ds_modules_101',
+    version='0.0.5',
     description="A small package to help with some routine Data Science activities",
-    long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/pypa/sampleproject",
-    packages=setuptools.find_packages(),
-    classifiers=[
-        "Programming Language :: Python :: 3",
-        "License :: OSI Approved :: MIT License",
-        "Operating System :: OS Independent",
-    ],
-    python_requires='>=3.6',
-    include_package_data=True,
+    long_description=README,
+    license='MIT',
+    packages=find_packages(),
+    author='Tansel Arif',
+    author_email='tanselarif21@gmail.com',
+    keywords=['dsmodules', 'dsmodules101'],
+    url='https://github.com/TanselArif-21/ds_modules_101',
+    #download_url='https://github.com/TanselArif-21/ds_modules_101'
 )
+
+install_requires = [
+    'numpy>=1.19.2'
+]
+
+if __name__ == '__main__':
+    setup(**setup_args, install_requires=install_requires)
