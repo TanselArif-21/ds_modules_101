@@ -20,17 +20,18 @@ def heatmap(x, y, value, figuresize=(10,10), fontsize=20,colour_from_to=(15,235)
     :param size_scale: How big the icons can get
     :param marker_style: The style of the markers. Default is 'o' for circle. See here for options: https://matplotlib.org/3.1.1/api/markers_api.html
     
-    Example Usage:
+    Example Usage 1:
     from ds_modules_101 import Plotting as dsp
     from ds_modules_101.Data import titanic_df
-    
+    import pandas as pd
+
     data = titanic_df.copy()
     data = data[['Survived','Pclass','SibSp','Parch','Fare']].copy()
     columns = ['Survived','Pclass','SibSp','Parch','Fare'] 
     corr = data[columns].corr()
     corr = pd.melt(corr.reset_index(), id_vars='index') # Unpivot the dataframe, so we can get pair of arrays for x and y
     corr.columns = ['x', 'y', 'value']
-    a = heatmap(
+    a = dsp.heatmap(
         x=corr['x'],
         y=corr['y'],
         value=corr['value']
@@ -57,6 +58,13 @@ def heatmap(x, y, value, figuresize=(10,10), fontsize=20,colour_from_to=(15,235)
     16    Pclass     Parch  0.018443
     17     SibSp     Parch  0.414838
     18     Parch     Parch  1.000000
+    
+    Example Usage 2:
+    from ds_modules_101 import Plotting as dsp
+    from ds_modules_101.Data import titanic_df
+    import pandas as pd
+    
+    dsp.heatmap(['Survived','Parch','Survived','Parch','Survived','Parch','Pclass','Pclass','Pclass'],['Parch','Survived','Survived','Parch','Pclass','Pclass','Pclass','Survived','Parch'],[0.1,-0.5,1,1,0.8,0.2,0.2,0.1,0.3])
     '''
     # convert to size
     size = np.abs(value)
@@ -155,11 +163,13 @@ def heatmap(x, y, value, figuresize=(10,10), fontsize=20,colour_from_to=(15,235)
 
     return fig
 
-def correlation_heatmap(df,columns,**kwargs):
+def correlation_heatmap(df,columns,minimum_size=-1,maximum_size=1,**kwargs):
     '''
     A function to just do a correlation heatmap between the specified columns
     :param df: The data frame object
     :param columns: A list of column names to do a correlation between
+    :param minimum_size: float. Where you want to colour scale to start from. i.e. the minimum value. Default = -1
+    :param maximum_size: float. Where you want to colour scale to end. i.e. the maximum value. Default = +1
     :param kwargs: Key word arguments to be passed to the heatmap function
     
     :return fig: A figure object
@@ -169,7 +179,8 @@ def correlation_heatmap(df,columns,**kwargs):
     from ds_modules_101.Data import titanic_df
     import pandas as pd
     
-    dsp.correlation_heatmap(titanic_df,['Survived','Pclass','SibSp','Parch','Fare'],figuresize=(10, 10))
+    dsp.correlation_heatmap(titanic_df,['Survived','Pclass','SibSp','Parch','Fare'],figuresize=(10, 10),minimum_size=-1,
+    maximum_size=1)
     '''
     
     data = df[columns].copy()
@@ -187,6 +198,6 @@ def correlation_heatmap(df,columns,**kwargs):
     fig = heatmap(
         x=corr['x'],
         y=corr['y'],
-        value=corr['value'],**kwargs
+        value=corr['value'],minimum_size=minimum_size,maximum_size=maximum_size,**kwargs
     )
     return fig
