@@ -3,6 +3,7 @@ import seaborn as sns
 import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
+from scipy import stats
 
 def heatmap(x, y, value, figuresize=(10,10), fontsize=20,colour_from_to=(15,235),minimum_size=None, maximum_size=None,
             size_scale=200,marker_style='o',show_grid_lines = True):
@@ -200,4 +201,198 @@ def correlation_heatmap(df,columns,minimum_size=-1,maximum_size=1,**kwargs):
         y=corr['y'],
         value=corr['value'],minimum_size=minimum_size,maximum_size=maximum_size,**kwargs
     )
+    return fig
+    
+def Heatmap_Survey_group_difference(df,comparison_col_name,comparison_order,choice_col_name,category_col_name,category_order = None,
+                                   minimum_size = 5,annot_loc = 10,annotate_dprime = True,annotate_mean_diffs = False,annotate_pvalue_significance = True,
+                                   output_diagnostics = False,significance_level = 0.05,footnote_x = 0, footnote_y = -0.5,footnote_size=13,annotation_font_size=16,
+                                   ticks_font_size=20,custom_title = None, title_append = ''):
+
+    '''
+    This function is a heatmap of survey data representing response choices to a particular question. For each category, it
+    looks at whether there is a difference in the choice between 2 comparison groups. There is functionality to output pvalues
+    based on the proportion (mean) that group has chosen this choice as well as d prime results comparing the relative 
+    potency of that choice within each of the groups. The function does not care if this is a single choice question or multiple.
+
+    :param df: The dataframe
+    :param comparison_col_name: String. This column should contain at least 2 groups. This column will be used to compare choice answers between
+    :param comparison_order: List of size 2. This must be supplied. The 2 groups to consider
+    :param choice_col_name: String. The column name representing the choice
+    :param category_col_name: String. The column to be used to focus the analysis within
+    :param category_order: List. The order to place the categories. If not supplied this will be inferred from the df
+    :param minimum_size: Int. Specifies the minimum required sample size when displaying results. Defaults to 5
+    :param annot_loc: Float. Controls where the annotations are. The larget the value the more the annotations go to the right
+    :param annotate_dprime: Boolean. Default True
+    :param annotate_mean_diffs: Boolean. Default False
+    :param annotate_pvalue_significance. Boolean. Default True
+    :param output_diagnostics: Boolean. Default False
+    :param significance_level: Float. Default 0.05
+    :param footnote_x: The x coordinate of the footnote
+    :param footnote_y: The y coordinate of the footnote
+    :param footnote_size: The label size of the footnote
+    
+    :returns: fig
+    
+    Example Usage:
+    from ds_modules_101 import Plotting as dsp
+    from ds_modules_101.Data import titanic_df
+    import pandas as pd
+    
+    # get only specific columns
+    temp = titanic_df[[pclass,sex,embarked]].copy()
+
+    # filter to have only sex in these
+    temp = temp[temp[sex].isin([male,female])][[sex,pclass,embarked]].copy()
+
+
+    choice_col_name = 'Pclass'
+    category_col_name = 'Sex'
+    comparison_col_name = 'Embarked'
+
+    category_order = ['male','female']
+
+    comparison_order = ['C','S']
+    
+    f = dsp.Heatmap_Survey_group_difference(temp,comparison_col_name,comparison_order,choice_col_name,category_col_name,category_order = None,
+                                       minimum_size = 5,annot_loc = 10,annotate_dprime = True,annotate_mean_diffs = False,annotate_pvalue_significance = True,
+                                       output_diagnostics = False,significance_level = 0.05)
+    '''
+    
+    if category_order is None:
+        category_order = list(df[category_col_name].unique())
+
+    # remove any rows that are missing entries
+    temp = df[~df.isna().any(axis=1)].copy()
+
+    # add a key
+    temp['key'] = 1
+
+    # get the unique entries in this column
+    choices = temp[[choice_col_name]].drop_duplicates(keep='first')
+
+    # create a key
+    choices['key'] = 1
+
+    # join all rows on the key
+    temp = pd.merge(left = temp,right = choices,on='key',how='left',suffixes=('','_y'))
+
+    # create a column which specifies whether this class was the choice
+    temp['choice'] = temp[[choice_col_name,choice_col_name+'_y']].apply(lambda x: 1 if x[0] == x[1] else 0,axis=1)
+    temp.drop(choice_col_name+'_y',axis=1,inplace=True)
+
+    # get the order of the class
+    order = sorted(list(temp[choice_col_name].unique()))
+
+    # add a count column
+    temp['Count'] = 1
+
+    # get the total number of people in each of these groups as well as the total number of people who are each choice_col_name
+    grp = temp.groupby(by = [category_col_name,comparison_col_name,choice_col_name]).sum().reset_index()
+
+    # get the total in 2 fields
+    totals = temp.groupby(by = [category_col_name,comparison_col_name]).sum().reset_index()
+    if choice_col_name in list(totals.columns):
+        totals.drop(choice_col_name,axis=1,inplace=True)
+    
+    # join the totals onto the groups
+    grp = pd.merge(left = grp,right = totals, on=[category_col_name,comparison_col_name],suffixes=('_level','_levelgroup'))
+
+    # calculate the pct in the groups
+    grp['pct in group'] = grp[['Count_level','Count_levelgroup']].apply(lambda x: x[0]*100/x[1],axis=1)
+
+    # join the group table to get differences between category_col_name
+    grp_cross_ethnicity = pd.merge(left=grp,right=grp,on=[category_col_name,choice_col_name])
+
+
+    grp_cross_ethnicity = grp_cross_ethnicity[(grp_cross_ethnicity[comparison_col_name+'_x'] == comparison_order[0]) & (grp_cross_ethnicity[comparison_col_name+'_y'] == comparison_order[1])]
+    grp_cross_ethnicity = grp_cross_ethnicity[(grp_cross_ethnicity['choice_level_x'] > minimum_size) & (grp_cross_ethnicity['choice_level_y'] > minimum_size)]
+    grp_cross_ethnicity['ScaledProp'] = grp_cross_ethnicity[['pct in group_y','pct in group_x']].apply(lambda x: round(x[0]*100/(x[0]+x[1]),2),axis=1)
+
+    # remove rows smaller than 10
+    grp_cross_ethnicity = grp_cross_ethnicity[(grp_cross_ethnicity['choice_level_x'] >= minimum_size) & (grp_cross_ethnicity['choice_level_y'] >= minimum_size)].copy()
+
+    fig = plt.figure(figsize=(20,5))
+    ax = fig.add_subplot(1,1,1)
+    df = pd.pivot_table(data=grp_cross_ethnicity,
+                        index=category_col_name,
+                        values='ScaledProp',
+                        columns=choice_col_name)
+    sns.heatmap(df,annot=False, cmap="RdYlGn",annot_kws={"size": 18},ax=ax,vmin=20, vmax=80)
+
+    ax.set_xticklabels(ax.get_xmajorticklabels(), fontsize = 20,rotation=45)
+    ax.set_xlabel(ax.get_xlabel(), fontsize = 20)
+    ax.set_ylabel(ax.get_ylabel(), fontsize = 20)
+    title = 'Proportion importance between {0} = {1} and {2} ({1}:{2})'.format(comparison_col_name,comparison_order[0],comparison_order[1])
+    if custom_title is not None:
+        title = custom_title
+    title = title + ' ' + title_append
+    ax.set_title(title)
+    ax.set_yticklabels(ax.get_ymajorticklabels(), fontsize = 20,rotation=45)
+
+    # Get axis labels and locations
+    xlabs = list(map(lambda x: x.get_text(),ax.get_xticklabels()))
+    xtiks = list(ax.get_xticks())
+    ylabs = list(map(lambda x: x.get_text(),ax.get_yticklabels()))
+    ytiks = list(ax.get_yticks())
+
+    # Draw significance
+    stress = comparison_order
+
+    for ix,xlab in enumerate(xlabs):
+        for iy,ylab in enumerate(ylabs):
+            temp['value'] = temp[choice_col_name].apply(lambda x: 1 if str(x) == xlab else 0)
+            cohort1 = temp[(temp[comparison_col_name] == comparison_order[0]) & (temp[category_col_name] == ylab) & (temp['choice'] == 1)]
+
+            cohort2 = temp[(temp[comparison_col_name] == comparison_order[1]) & (temp[category_col_name] == ylab) & (temp['choice'] == 1)]
+
+            pos1 = cohort1[cohort1['value'] == 1]
+            pos2 = cohort2[cohort2['value'] == 1]
+
+            pos1_len = len(pos1)
+            pos2_len = len(pos2)
+
+            cohort1_len = len(cohort1)
+            cohort2_len = len(cohort2) 
+
+            prop1 = pos1_len/cohort1_len
+            prop2 = pos2_len/cohort2_len
+
+            scaledprop1 = prop1/(prop1 + prop2)
+            scaledprop2 = prop2/(prop1 + prop2)
+
+            pvalue = stats.ttest_ind(cohort1['value'],cohort2['value'], equal_var = False)[1]
+            #pvalue = proportions_ztest(count=[len(pos1),len(pos2)],nobs=[len(cohort1),len(cohort2)])[1]
+            if output_diagnostics:
+                print('{0} and {1}: \npvalue = {2} \n{3}count_{4}count = {5}_{6} \n{3}true_{4}true = {7}_{8} \nproportions = {9}:{10} \nScaled Proportions = {11}:{12} \nd-prime significant: {13}\n\n'.format(xlab,ylab,pvalue,comparison_order[0],comparison_order[1],cohort1_len,cohort2_len,pos1_len,pos2_len,prop1,prop2,scaledprop1,scaledprop2,(scaledprop1 >= 0.6) or (scaledprop2 >= 0.6)))
+
+            if annotate_pvalue_significance:
+                if (pos1_len > minimum_size) and (pos2_len > minimum_size):
+                    if pvalue <= significance_level:
+                        sns.scatterplot(x=[xtiks[ix] + (xtiks[1]-xtiks[0])/4],y=[ytiks[iy]],s=200,marker="*",color='black',ax=ax)
+
+            if annotate_dprime:
+                if (pos1_len > minimum_size) and (pos2_len > minimum_size):
+                    plt.text(x=xtiks[ix] - (xtiks[1]-xtiks[0])/annot_loc,y=ytiks[iy], s='{}:{}'.format(int(np.round(scaledprop1*100,0)),int(np.round(scaledprop2*100,0))), fontsize=annotation_font_size)
+            elif annotate_mean_diffs:
+                if (pos1_len > minimum_size) and (pos2_len > minimum_size):
+                    plt.text(x=xtiks[ix] - (xtiks[1]-xtiks[0])/annot_loc,y=ytiks[iy], s='{}'.format(np.round(prop1-prop2,1)), fontsize=annotation_font_size)
+
+    t = 'Any cell not appearing has sample size < {0} for one of the groups\n'.format(minimum_size)
+
+    if annotate_dprime:
+        t = t + 'Annotations: d prime scaled proportions \nColour: Red indicates that the choice is more potent in {0}\n'.format(comparison_order[0])
+
+    if annotate_pvalue_significance:
+        t = t + 'Pvalue: A * indicates significance between {0} groups at the {1} level'.format(comparison_col_name,significance_level)
+
+
+    a=fig.text(footnote_x,footnote_y,t,size=footnote_size)
+
+
+    cbar = ax.collections[0].colorbar
+    ts = cbar.get_ticks()
+    cbar.set_ticks(ts)
+    cbar.set_ticklabels(['{}:{}'.format(100-int(i),int(i)) for i in ts])
+    cbar.ax.tick_params(labelsize=ticks_font_size)
+    
     return fig
