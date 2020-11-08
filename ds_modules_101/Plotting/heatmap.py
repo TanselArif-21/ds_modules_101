@@ -164,10 +164,11 @@ def heatmap(x, y, value, figuresize=(10,10), fontsize=20,colour_from_to=(15,235)
 
     return fig
 
-def correlation_heatmap(df,columns,minimum_size=-1,maximum_size=1,**kwargs):
+def correlation_heatmap(df,columns,method='pearson',minimum_size=-1,maximum_size=1,**kwargs):
     '''
     A function to just do a correlation heatmap between the specified columns
     :param df: The data frame object
+    :param method: The correlation type. 'pearson', 'kendall', 'spearman' or callable Method of correlation
     :param columns: A list of column names to do a correlation between
     :param minimum_size: float. Where you want to colour scale to start from. i.e. the minimum value. Default = -1
     :param maximum_size: float. Where you want to colour scale to end. i.e. the maximum value. Default = +1
@@ -187,7 +188,7 @@ def correlation_heatmap(df,columns,minimum_size=-1,maximum_size=1,**kwargs):
     data = df[columns].copy()
     
     # get a correlation matrix between all columns
-    corr = data.corr()
+    corr = data.corr(method)
     
     # convert the dataframe by unpivotting so that the first 2 columns are the pair of names and the 3rd column their correlation
     corr = pd.melt(corr.reset_index(), id_vars='index')
@@ -205,7 +206,7 @@ def correlation_heatmap(df,columns,minimum_size=-1,maximum_size=1,**kwargs):
     
 def Heatmap_Survey_group_difference(df,comparison_col_name,comparison_order,choice_col_name,category_col_name,category_order = None,
                                    minimum_size = 5,annot_loc = 10,annotate_dprime = True,annotate_mean_diffs = False,annotate_pvalue_significance = True,
-                                   output_diagnostics = False,significance_level = 0.05,footnote_x = 0, footnote_y = -0.5,footnote_size=13,annotation_font_size=16,
+                                   output_diagnostics = False,significance_level = 0.01,significance_level2 = 0.05,significance_level3 = 0.1,footnote_x = 0, footnote_y = -0.5,footnote_size=13,annotation_font_size=16,
                                    ticks_font_size=20,custom_title = None, title_append = ''):
 
     '''
@@ -226,7 +227,9 @@ def Heatmap_Survey_group_difference(df,comparison_col_name,comparison_order,choi
     :param annotate_mean_diffs: Boolean. Default False
     :param annotate_pvalue_significance. Boolean. Default True
     :param output_diagnostics: Boolean. Default False
-    :param significance_level: Float. Default 0.05
+    :param significance_level: Float. Default 0.01
+    :param significance_level2: Float. Default 0.05. Used for annotation of 1, 2 or 3 stars
+    :param significance_level3: Float. Default 0.1. Used for annotation of 1, 2 or 3 stars
     :param footnote_x: The x coordinate of the footnote
     :param footnote_y: The y coordinate of the footnote
     :param footnote_size: The label size of the footnote
@@ -257,6 +260,19 @@ def Heatmap_Survey_group_difference(df,comparison_col_name,comparison_order,choi
                                        minimum_size = 5,annot_loc = 10,annotate_dprime = True,annotate_mean_diffs = False,annotate_pvalue_significance = True,
                                        output_diagnostics = False,significance_level = 0.05)
     '''
+    single_star = False
+    if max([significance_level,significance_level2,significance_level3]) == significance_level:
+        single_star = True
+        if output_diagnostics:
+            print('Only using single star pvalue annotation because the significance levels provided are not incremental')
+    elif max([significance_level,significance_level2]) == significance_level:
+        single_star = True
+        if output_diagnostics:
+            print('Only using single star pvalue annotation because the significance levels provided are not incremental')
+    elif max([significance_level2,significance_level3]) == significance_level2:
+        single_star = True
+        if output_diagnostics:
+            print('Only using single star pvalue annotation because the significance levels provided are not incremental')
     
     if category_order is None:
         category_order = list(df[category_col_name].unique())
@@ -368,7 +384,15 @@ def Heatmap_Survey_group_difference(df,comparison_col_name,comparison_order,choi
             if annotate_pvalue_significance:
                 if (pos1_len > minimum_size) and (pos2_len > minimum_size):
                     if pvalue <= significance_level:
-                        sns.scatterplot(x=[xtiks[ix] + (xtiks[1]-xtiks[0])/4],y=[ytiks[iy]],s=200,marker="*",color='black',ax=ax)
+                        #sns.scatterplot(x=[xtiks[ix] + (xtiks[1]-xtiks[0])/4],y=[ytiks[iy]],s=200,marker="***",color='black',ax=ax)
+                        plt.text(x=xtiks[ix] + (xtiks[1]-xtiks[0])/4,y=ytiks[iy], s='***', fontsize=annotation_font_size)
+                    elif (pvalue <= significance_level2) and not single_star:
+                        #sns.scatterplot(x=[xtiks[ix] + (xtiks[1]-xtiks[0])/4],y=[ytiks[iy]],s=200,marker="**",color='black',ax=ax)
+                        plt.text(x=xtiks[ix] + (xtiks[1]-xtiks[0])/4,y=ytiks[iy], s='**', fontsize=annotation_font_size)
+                        a=1
+                    elif (pvalue <= significance_level3) and not single_star:
+                        #sns.scatterplot(x=[xtiks[ix] + (xtiks[1]-xtiks[0])/4],y=[ytiks[iy]],s=200,marker="*",color='black',ax=ax)
+                        plt.text(x=xtiks[ix] + (xtiks[1]-xtiks[0])/4,y=ytiks[iy], s='*', fontsize=annotation_font_size)
 
             if annotate_dprime:
                 if (pos1_len > minimum_size) and (pos2_len > minimum_size):
@@ -383,7 +407,10 @@ def Heatmap_Survey_group_difference(df,comparison_col_name,comparison_order,choi
         t = t + 'Annotations: d prime scaled proportions \nColour: Red indicates that the choice is more potent in {0}\n'.format(comparison_order[0])
 
     if annotate_pvalue_significance:
-        t = t + 'Pvalue: A * indicates significance between {0} groups at the {1} level'.format(comparison_col_name,significance_level)
+        if single_star:
+            t = t + 'Pvalue: A *** indicates significance between {0} groups at the {1} level'.format(comparison_col_name,significance_level)
+        else:
+            t = t + 'Pvalue: A *, ** and *** indicates significance between {0} groups at the {1}, {2}, {3} levels respectively'.format(comparison_col_name,significance_level3,significance_level2,significance_level)
 
 
     a=fig.text(footnote_x,footnote_y,t,size=footnote_size)
