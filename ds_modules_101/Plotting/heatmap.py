@@ -423,3 +423,191 @@ def Heatmap_Survey_group_difference(df,comparison_col_name,comparison_order,choi
     cbar.ax.tick_params(labelsize=ticks_font_size)
     
     return fig
+    
+def Heatmap_group_difference(df,bucket_col_name,comparison_col_name,category_col_name,value_col_name,
+                             bucket_order=None,
+                             comparison_order=None,
+                             category_order=None,
+                             minimum_size = 5,annot_loc = 10,
+                             annotate_pvalue_significance = True,
+                             output_diagnostics = False,significance_level = 0.01,significance_level2 = 0.05,
+                             significance_level3 = 0.1,footnote_x = 0, footnote_y = -0.5,footnote_size=13,
+                             annotation_font_size=16,ticks_font_size=20,custom_title = None, title_append = '',dp=3):
+
+    '''
+    This function is a heatmap of the mean differences between 2 groups in the data. For each category and bucket, it
+    looks at whether there is a difference in the choice between 2 comparison groups.
+
+    :param df: The dataframe
+    :param bucket_col_name: String. The column in the data frame that will appear along the x axis of the heatmap
+    :param value_col_name: String. This column should contain numeric values
+    :param bucket_order: List. The order of the buckets we want to appear
+    :param comparison_col_name: String. The column containing 2 groups to compare their means
+    :param comparison_order: List. The order to compare the two groups. i.e. if group 1 mean > group 2 mean or the other direction
+    :param category_col_name: String. The column to be used to focus the analysis within
+    :param category_order: List. The order to place the categories. If not supplied this will be inferred from the df
+    :param minimum_size: Int. Specifies the minimum required sample size when displaying results. Defaults to 5
+    :param annot_loc: Float. Controls where the annotations are. The larget the value the more the annotations go to the right
+    :param annotate_pvalue_significance. Boolean. Default True
+    :param output_diagnostics: Boolean. Default False
+    :param significance_level: Float. Default 0.01
+    :param significance_level2: Float. Default 0.05. Used for annotation of 1, 2 or 3 stars
+    :param significance_level3: Float. Default 0.1. Used for annotation of 1, 2 or 3 stars
+    :param footnote_x: The x coordinate of the footnote
+    :param footnote_y: The y coordinate of the footnote
+    :param footnote_size: The label size of the footnote
+    :param dp: int. the decimal places to display the mean diffs
+    
+    :returns: fig
+    
+    Example:
+    from ds_modules_101 import Plotting as dsp
+    from ds_modules_101.Data import titanic_df
+    import pandas as pd
+
+    bucket_col_name = 'Pclass'
+    #bucket_order=['1','2','3']
+    category_col_name = 'Sex'
+    comparison_col_name = 'Embarked'
+    category_order = ['male','female']
+    comparison_order = ['C','S']
+    value_col_name='Fare'
+
+    # get only specific columns
+    temp = titanic_df[[bucket_col_name,category_col_name,comparison_col_name,value_col_name]].copy()
+
+    # filter to have only sex in these
+    temp = temp[temp[category_col_name].isin(category_order)][[bucket_col_name,category_col_name,comparison_col_name,value_col_name]].copy()
+
+
+    f = Heatmap_group_difference(temp,bucket_col_name,comparison_col_name,category_col_name,value_col_name,
+        bucket_order=bucket_order,comparison_order=comparison_order,category_order=category_order,minimum_size = 5,annot_loc = 10,annotate_pvalue_significance = True,
+                                       output_diagnostics = False,significance_level = 0.05)
+    
+    '''
+    single_star = False
+    if max([significance_level,significance_level2,significance_level3]) == significance_level:
+        single_star = True
+        if output_diagnostics:
+            print('Only using single star pvalue annotation because the significance levels provided are not incremental')
+    elif max([significance_level,significance_level2]) == significance_level:
+        single_star = True
+        if output_diagnostics:
+            print('Only using single star pvalue annotation because the significance levels provided are not incremental')
+    elif max([significance_level2,significance_level3]) == significance_level2:
+        single_star = True
+        if output_diagnostics:
+            print('Only using single star pvalue annotation because the significance levels provided are not incremental')
+    
+    if category_order is None:
+        category_order = list(df[category_col_name].unique())
+        
+    if bucket_order is None:
+        bucket_order = list(df[bucket_col_name].unique())
+        
+    if comparison_order is None:
+        comparison_order = list(df[comparison_col_name].unique())
+
+    # remove any rows that are missing entries
+    temp = df[~df.isna().any(axis=1)].copy()
+
+    for col in [bucket_col_name,comparison_col_name,category_col_name]:
+        temp[col] = temp[col].astype('str')
+    ### For each category col and bucket col, we need to calculate the difference between the comparison column of
+    ### the value column
+    
+    value_col_name_mean = value_col_name + '_mean'
+    value_col_name_count = value_col_name + '_count'
+    value_col_name_std = value_col_name + '_std'
+    function_dict = {value_col_name_mean: "mean", value_col_name_count: "count",value_col_name_std: "std"}
+    temp[value_col_name_mean] = temp[value_col_name]
+    temp[value_col_name_count] = temp[value_col_name]
+    temp[value_col_name_std] = temp[value_col_name]
+
+    temp_grp = temp.groupby(by=[comparison_col_name,bucket_col_name,category_col_name]).aggregate(function_dict).reset_index()
+    
+    temp_merged = pd.merge(left=temp_grp[temp_grp[comparison_col_name]==comparison_order[0]].drop(comparison_col_name,axis=1),
+         right=temp_grp[temp_grp[comparison_col_name]==comparison_order[1]].drop(comparison_col_name,axis=1),
+        on=[bucket_col_name,category_col_name],suffixes=('_x','_y'),how='inner')
+    
+    temp_merged['Diff_mean']=temp_merged[value_col_name_mean+'_x']-temp_merged[value_col_name_mean+'_y'] 
+    
+    temp_merged['pvalue'] = 1
+    for i in list(temp_merged[bucket_col_name].unique()):
+        for j in list(temp_merged[category_col_name].unique()):
+            cohort1 = temp[(temp[bucket_col_name]==i) & (temp[category_col_name]==j) & (temp[comparison_col_name]==comparison_order[0])][value_col_name]
+            cohort2 = temp[(temp[bucket_col_name]==i) & (temp[category_col_name]==j) & (temp[comparison_col_name]==comparison_order[1])][value_col_name]
+            pvalue = stats.ttest_ind(cohort1.dropna(),cohort2.dropna(), equal_var = False)[1]
+            temp_merged.loc[(temp_merged[bucket_col_name]==i) & (temp_merged[category_col_name]==j),'pvalue'] = pvalue
+            mean1 = temp_merged.loc[(temp_merged[bucket_col_name]==i) & (temp_merged[category_col_name]==j),value_col_name_mean+'_x'].reset_index().iloc[0,1]
+            mean2 = temp_merged.loc[(temp_merged[bucket_col_name]==i) & (temp_merged[category_col_name]==j),value_col_name_mean+'_y'].reset_index().iloc[0,1]
+            diff_mean = temp_merged.loc[(temp_merged[bucket_col_name]==i) & (temp_merged[category_col_name]==j),'Diff_mean'].reset_index().iloc[0,1]
+    
+            if output_diagnostics:
+                print('{0} and {1}: \npvalue = {2} \n{3}count_{4}count = {5}_{6} \nmeans = {7} vs {8}  \ndiff = {9}\n\n'.format(i,j,pvalue,comparison_order[0],comparison_order[1],len(cohort1),len(cohort2),mean1,mean2,diff_mean))
+    
+    fig = plt.figure(figsize=(20,5))
+    ax = fig.add_subplot(1,1,1)
+    df = pd.pivot_table(data=temp_merged,
+                        index=category_col_name,
+                        values='Diff_mean',
+                        columns=bucket_col_name)
+    sns.heatmap(df,annot=False, cmap="RdYlGn",annot_kws={"size": 18},ax=ax,vmin=None, vmax=None)
+    
+    ax.set_xticklabels(ax.get_xmajorticklabels(), fontsize = 20,rotation=45)
+    ax.set_xlabel(ax.get_xlabel(), fontsize = 20)
+    ax.set_ylabel(ax.get_ylabel(), fontsize = 20)
+    title = 'Difference in means of {3} between {0} = {1} and {2} ({1}:{2})'.format(comparison_col_name,comparison_order[0],comparison_order[1],value_col_name)
+
+    title = title + ' '
+    ax.set_title(title)
+    ax.set_yticklabels(ax.get_ymajorticklabels(), fontsize = 20,rotation=45)
+
+    # Get axis labels and locations
+    xlabs = list(map(lambda x: x.get_text(),ax.get_xticklabels()))
+    xtiks = list(ax.get_xticks())
+    ylabs = list(map(lambda x: x.get_text(),ax.get_yticklabels()))
+    ytiks = list(ax.get_yticks())
+    
+    for ix,xlab in enumerate(xlabs):
+        for iy,ylab in enumerate(ylabs):
+            len1=temp_merged[(temp_merged[category_col_name]==ylab) & (temp_merged[bucket_col_name]==xlab)][value_col_name_count+'_x'].reset_index().iloc[0,1]
+            len2=temp_merged[(temp_merged[category_col_name]==ylab) & (temp_merged[bucket_col_name]==xlab)][value_col_name_count+'_y'].reset_index().iloc[0,1]
+            pvalue=temp_merged[(temp_merged[category_col_name]==ylab) & (temp_merged[bucket_col_name]==xlab)]['pvalue'].reset_index().iloc[0,1]
+            diff_mean=temp_merged[(temp_merged[category_col_name]==ylab) & (temp_merged[bucket_col_name]==xlab)]['Diff_mean'].reset_index().iloc[0,1]
+
+            if annotate_pvalue_significance:
+                if (len1 > minimum_size) and (len2 > minimum_size):
+                    if pvalue <= significance_level:
+                        #sns.scatterplot(x=[xtiks[ix] + (xtiks[1]-xtiks[0])/4],y=[ytiks[iy]],s=200,marker="***",color='black',ax=ax)
+                        plt.text(x=xtiks[ix] + (xtiks[1]-xtiks[0])/4,y=ytiks[iy], s='***', fontsize=annotation_font_size)
+                    elif (pvalue <= significance_level2) and not single_star:
+                        #sns.scatterplot(x=[xtiks[ix] + (xtiks[1]-xtiks[0])/4],y=[ytiks[iy]],s=200,marker="**",color='black',ax=ax)
+                        plt.text(x=xtiks[ix] + (xtiks[1]-xtiks[0])/4,y=ytiks[iy], s='**', fontsize=annotation_font_size)
+                        a=1
+                    elif (pvalue <= significance_level3) and not single_star:
+                        #sns.scatterplot(x=[xtiks[ix] + (xtiks[1]-xtiks[0])/4],y=[ytiks[iy]],s=200,marker="*",color='black',ax=ax)
+                        plt.text(x=xtiks[ix] + (xtiks[1]-xtiks[0])/4,y=ytiks[iy], s='*', fontsize=annotation_font_size)
+
+            if (len1 > minimum_size) and (len2 > minimum_size):
+                plt.text(x=xtiks[ix] - (xtiks[1]-xtiks[0])/annot_loc,y=ytiks[iy], s='{}'.format(np.round(diff_mean,dp)), fontsize=annotation_font_size)
+
+        t = 'Any cell not appearing has sample size < {0} for one of the groups\n'.format(minimum_size)
+
+    if annotate_pvalue_significance:
+        if single_star:
+            t = t + 'Pvalue: A *** indicates significance between {0} groups at the {1} level'.format(comparison_col_name,significance_level)
+        else:
+            t = t + 'Pvalue: A *, ** and *** indicates significance between {0} groups at the {1}, {2}, {3} levels respectively'.format(comparison_col_name,significance_level3,significance_level2,significance_level)
+
+
+    a=fig.text(footnote_x,footnote_y,t,size=footnote_size)
+
+
+    cbar = ax.collections[0].colorbar
+    ts = cbar.get_ticks()
+    cbar.set_ticks(ts)
+    cbar.set_ticklabels(['{}:{}'.format(100-int(i),int(i)) for i in ts])
+    cbar.ax.tick_params(labelsize=ticks_font_size)
+    
+    return fig
