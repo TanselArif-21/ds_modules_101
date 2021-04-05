@@ -1,0 +1,1 @@
+from .ordinal_logistic_regression import OrderedModel

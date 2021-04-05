@@ -5,7 +5,7 @@ with open('README.md') as readme_file:
 
 setup_args = dict(
     name='ds_modules_101',
-    version='0.1.19',
+    version='0.2.0',
     description="A small package to help with some routine Data Science activities",
     long_description_content_type="text/markdown",
     long_description=README,
@@ -22,7 +22,8 @@ setup_args = dict(
 install_requires = [
     'numpy',
     'pandas',
-    'plotly'
+    'plotly',
+    'statsmodels'
 ]
 
 if __name__ == '__main__':
