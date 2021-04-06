@@ -17,6 +17,7 @@ from statsmodels.compat.pandas import Appender
 # for results wrapper:
 import statsmodels.regression.linear_model as lm
 import statsmodels.base.wrapper as wrap
+import statsmodels.api as sm
 
 
 class OrderedModel(GenericLikelihoodModel):
@@ -41,6 +42,34 @@ class OrderedModel(GenericLikelihoodModel):
     or the logistic distribution, but can be set to any other continuous
     distribution. We use standardized distributions to avoid identifiability
     problems.
+    
+    EXAMPLE USAGE:#################
+    from ds_modules_101.Models import OrderedModel
+    from ds_modules_101.Data import titanic_df
+
+    # get filter for the columns we want
+    temp= titanic_df[['Pclass','Sex']].copy()
+
+    # removing nans
+    temp = temp[~temp.isna().any(axis=1)].copy()
+
+    # encoding sex column to 0 and 1
+    temp['male'] = temp['Sex'].apply(lambda x: x=='male').astype('int')
+
+    # get the responce variable and predictor variables
+    y = temp['Pclass']
+    X = temp[['male']]
+
+    myModel = OrderedModel(y,X,distr='logit')
+
+    myModel=myModel.fit()
+    smy = myModel.summary()
+    print(smy)
+    print('Log')
+    myModel.check_parallel_lines_assumption()
+    myModel.summary_extra()
+    ###############################
+    
     Parameters
     ----------
     endog : array_like
@@ -569,6 +598,57 @@ class OrderedResults(GenericLikelihoodModelResults):
         r = prob_larger_ordinal_choice(fitted)[1]
         resid_prob = r[np.arange(endog.shape[0]), endog]
         return resid_prob
+    
+    def check_parallel_lines_assumption(self):
+        myModel = sm.MNLogit(self.endog, sm.add_constant(self.exog))
+        myModel = myModel.fit()
+        self.llmulti = myModel.llf
+        self.evidence_against=stats.distributions.chi2.sf(df=max([1,self.df_model-2]),x=(-2*self.llf)-(-2*myModel.llf))
+        self.evidence_against_multinomial_for_ordinal=stats.distributions.chi2.sf(df=max([1,self.df_model-2]),x=(-2*myModel.llf)-(-2*self.llf))
+        self.evidence_against_multinomial=stats.distributions.chi2.sf(df=max([1,myModel.df_model-2]),x=-2*myModel.llnull-(-2*myModel.llf))
+        print('Log-Likelihood of null model = {}'.format(myModel.llnull))
+        print('Log-Likelihood of full logistic regression model = {}'.format(myModel.llf))
+        print('Log-Likelihood of full ordinal logistic regression model = {}'.format(self.llf))
+        print('Evidence against null (intercept only) model in favour of multinomial model = {}'.format(self.evidence_against_multinomial))
+        print('Evidence against null (intercept only) model in favour of ordinal model = {}'.format(self.llr_pvalue))
+        print('Evidence against Multinomial model in favour of proportional odds = {}'.format(self.evidence_against))
+        print('Evidence against proportional odds model in favour of Multinomial= {}'.format(self.evidence_against_multinomial_for_ordinal))
+        
+    def summary_extra(self):
+        warn = ''
+        s=self.summary()
+        t=s.tables[0]
+
+        t[3][2].data='Log-Likelihood Null'.rjust(21)
+        t[3][3].data=str(round(self.llnull,15))[:21].rjust(8)
+        
+        try:    
+            t[4][2].data='Log-Likelihood Multinomial'[:21].rjust(21)
+            t[4][3].data=str(round(self.llmulti,15))[:21].rjust(8)
+            t[5][2].data='Dev. Null vs Multi'[:21].rjust(21)
+            t[5][3].data=str(round(self.evidence_against_multinomial,15))[:21].rjust(8)
+            t[6][2].data='Dev. Multi | Ordinal'[:21].rjust(21)
+            t[6][3].data=(str(round(self.evidence_against,6)) +' | '+ str(round(self.evidence_against_multinomial_for_ordinal,6)))[:21].rjust(8)
+        except:
+            t[4][2].data='Log-Likelihood Multinomial'[:21].rjust(21)
+            t[4][3].data=''[:21].rjust(8)
+            t[5][2].data='Dev. Null vs Multi'[:21].rjust(21)
+            t[5][3].data=''[:21].rjust(8)
+            t[6][2].data='Dev. Multi | Ordinal'[:21].rjust(21)
+            t[6][3].data=''[:21].rjust(8)
+            
+            warn = 'Warning: Run check_parallel_lines_assumption() first for deviance against multinomial'
+
+
+
+        t[7][2].data='Dev. Null vs Ordinal'[:21].rjust(21)
+        t[7][3].data=str(round(self.llr_pvalue,15))[:21].rjust(8)
+        s.extra_txt = 'Dev. Null vs Ordinal: Evidence against intercept only model in favour of proportional odds model'
+        s.extra_txt = s.extra_txt+'\n'+'Dev. Multinomial | Ordinal: Evidence against multinomial in favour of proportional odds model | Evidence against proportional odds model in favour of multinomial'
+        s.extra_txt = s.extra_txt+'\n'+'Dev. Null vs Multinomial: Evidence against intercept only model in favor of Multinomial'
+        s.extra_txt = s.extra_txt+'\n'+warn
+        
+        return s
 
 
 class OrderedResultsWrapper(lm.RegressionResultsWrapper):
