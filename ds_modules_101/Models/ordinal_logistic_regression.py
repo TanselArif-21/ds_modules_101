@@ -605,14 +605,14 @@ class OrderedResults(GenericLikelihoodModelResults):
         self.llmulti = myModel.llf
         self.evidence_against=stats.distributions.chi2.sf(df=max([1,self.df_model-2]),x=(-2*self.llf)-(-2*myModel.llf))
         self.evidence_against_multinomial_for_ordinal=stats.distributions.chi2.sf(df=max([1,self.df_model-2]),x=(-2*myModel.llf)-(-2*self.llf))
-        self.evidence_against_multinomial=stats.distributions.chi2.sf(df=max([1,myModel.df_model-2]),x=-2*myModel.llnull-(-2*myModel.llf))
+        self.evidence_against_multinomial=myModel.llr_pvalue
         print('Log-Likelihood of null model = {}'.format(myModel.llnull))
         print('Log-Likelihood of full logistic regression model = {}'.format(myModel.llf))
         print('Log-Likelihood of full ordinal logistic regression model = {}'.format(self.llf))
         print('Evidence against null (intercept only) model in favour of multinomial model = {}'.format(self.evidence_against_multinomial))
         print('Evidence against null (intercept only) model in favour of ordinal model = {}'.format(self.llr_pvalue))
-        print('Evidence against Multinomial model in favour of proportional odds = {}'.format(self.evidence_against))
-        print('Evidence against proportional odds model in favour of Multinomial= {}'.format(self.evidence_against_multinomial_for_ordinal))
+        print('Evidence against Multinomial model in favour of proportional odds = {}'.format(self.evidence_against_multinomial_for_ordinal))
+        print('Evidence against proportional odds model in favour of Multinomial= {}'.format(self.evidence_against))
         
     def summary_extra(self):
         warn = ''
@@ -628,7 +628,7 @@ class OrderedResults(GenericLikelihoodModelResults):
             t[5][2].data='Dev. Null vs Multi'[:21].rjust(21)
             t[5][3].data=str(round(self.evidence_against_multinomial,15))[:21].rjust(8)
             t[6][2].data='Dev. Multi | Ordinal'[:21].rjust(21)
-            t[6][3].data=(str(round(self.evidence_against,6)) +' | '+ str(round(self.evidence_against_multinomial_for_ordinal,6)))[:21].rjust(8)
+            t[6][3].data=(str(round(self.evidence_against_multinomial_for_ordinal,6))+' | '+ str(round(self.evidence_against,6)))[:21].rjust(8)
         except:
             t[4][2].data='Log-Likelihood Multinomial'[:21].rjust(21)
             t[4][3].data=''[:21].rjust(8)
