@@ -20,5 +20,5 @@ clean:
 
 # run this after activating the environment
 jupyter:
-	$(PIP) install jupyter
+	conda install jupyter
 	ipython kernel install --name "venv_ds_modules" --user
