@@ -4,7 +4,8 @@ import pandas as pd
 
 
 def cleveland_plot(df,group_by,grp_col,val_col,groups,sortbycol=None,min_group_size=20,height = 10,width=10,number_of_splits = 5,
-                    legend_x = 1.05,legend_y = 0,legend_x2 = 1.05,legend_y2 =1,labelsize = 1):
+                    legend_x = 1.05,legend_y = 0,legend_x2 = 1.05,legend_y2 =1,labelsize = 1,
+                    xlim = None, ylim = None):
     
     '''
     Example Usage:
@@ -59,6 +60,12 @@ def cleveland_plot(df,group_by,grp_col,val_col,groups,sortbycol=None,min_group_s
     ax.set_title("Gap in {}".format(val_col),fontsize=20*labelsize)
     ax.set_xlabel(val_col,fontsize=20*labelsize)
     ax.set_ylabel(group_by,fontsize=20*labelsize)
+
+    if xlim is not None:
+        ax.set_xlim(xlim[0],xlim[1])
+
+    if ylim is not None:
+        ax.set_ylim(ylim[0],ylim[1])
 
     min_women = t['count_{}'.format(grp2)].min()
     max_women = t['count_{}'.format(grp2)].max()
