@@ -24,9 +24,7 @@ def log_reg(df,response,include_diagnostics='Yes'):
         print('There are NaNs in the dataset. After removing NaNs, the rows reduce from {} to {}'.format(len(df),
                                                                                                        len(df1)))
 
-    cat_cols = list(filter(lambda x: not is_numeric_dtype(df1[x]),df1.columns))
-    cat_cols = list(set(cat_cols) - {response})
-    df1 = pd.get_dummies(df1,columns=cat_cols,drop_first=True)
+    df1 = prepare_categories(df1,response,drop=True)
 
     result,model = log_reg_basic(df1,response)
 
@@ -34,13 +32,25 @@ def log_reg(df,response,include_diagnostics='Yes'):
         log_reg_basic(df1, response,with_diagnostics=True)
 
     return result
-
-def log_reg_basic(df,response,with_diagnostics = False):
+    
+def prepare_data(df,response,has_constant='skip'):
     y = df[response]
     X = df[list(filter(lambda x: x != response,df.columns))]
 
-    X = sm.add_constant(X)
+    X = sm.add_constant(X,has_constant=has_constant)
+    
+    return X,y
 
+def prepare_categories(df,response,drop=False):
+    cat_cols = list(filter(lambda x: not is_numeric_dtype(df[x]),df.columns))
+    cat_cols = list(set(cat_cols) - {response})
+    df = pd.get_dummies(df,columns=cat_cols,drop_first=drop)
+    
+    return df
+
+def log_reg_basic(df,response,with_diagnostics = False):
+    X,y = prepare_data(df,response)
+    
     model = sm.Logit(y,X)
 
     result = model.fit(disp=0)
@@ -53,7 +63,7 @@ def log_reg_basic(df,response,with_diagnostics = False):
     return result,model
 
 
-def log_reg_with_feature_selection(df, response, run_for=0, include_diagnostics='Yes'):
+def log_reg_with_feature_selection(df, response, run_for=0, include_diagnostics='Yes',get_model_and_features = False):
     start_time = time.time()
 
     df1 = df[~df.isna().any(axis=1)].copy()
@@ -69,9 +79,7 @@ def log_reg_with_feature_selection(df, response, run_for=0, include_diagnostics=
         return None
 
 
-    cat_cols = list(filter(lambda x: not is_numeric_dtype(df1[x]), df.columns))
-    cat_cols = list(set(cat_cols) - {response})
-    df1 = pd.get_dummies(df1, columns=cat_cols, drop_first=False)
+    df1 = prepare_categories(df1,response,drop=False)
 
     if len(df1.columns) > len(df1):
         warnings.warn(
@@ -139,7 +147,10 @@ def log_reg_with_feature_selection(df, response, run_for=0, include_diagnostics=
     if include_diagnostics == 'Yes':
         log_reg_basic(df1[full_feature_set + [response]], response, with_diagnostics=True)
 
-    return final_result
+    if get_model_and_features:
+        return final_result,final_model,full_feature_set + [response]
+    else:
+        return final_result
 
 def log_reg_diagnostic_performance(df,response):
     print("Performance (0 is negative 1 is positive)")
