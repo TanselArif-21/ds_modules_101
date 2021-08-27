@@ -101,7 +101,7 @@ def log_reg_with_feature_selection(df, response, run_for=0, include_diagnostics=
         for col in sorted(remaining):
             this_feature_set = full_feature_set + [col]
             try:
-            result, model = log_reg_basic(df1[this_feature_set + [response]], response)
+                result, model = log_reg_basic(df1[this_feature_set + [response]], response)
             except:
                 remaining.remove(col)
                 continue
