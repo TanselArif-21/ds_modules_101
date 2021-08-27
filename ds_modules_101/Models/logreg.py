@@ -56,9 +56,6 @@ def log_reg_basic(df,response,with_diagnostics = False):
 def log_reg_with_feature_selection(df, response, run_for=0, include_diagnostics='Yes'):
     start_time = time.time()
 
-    if not logistic_regression_utility_check_response(df[response]):
-        return None
-
     df1 = df[~df.isna().any(axis=1)].copy()
 
     if len(df1) < len(df):
@@ -68,7 +65,8 @@ def log_reg_with_feature_selection(df, response, run_for=0, include_diagnostics=
         print(
             'There are NaNs in the dataset. After removing NaNs, the rows reduce from {} to {}'.format(len(df),
                                                                                                        len(df1)))
-
+    if not logistic_regression_utility_check_response(df1[response]):
+        return None
 
 
     cat_cols = list(filter(lambda x: not is_numeric_dtype(df1[x]), df.columns))
@@ -102,7 +100,11 @@ def log_reg_with_feature_selection(df, response, run_for=0, include_diagnostics=
 
         for col in sorted(remaining):
             this_feature_set = full_feature_set + [col]
+            try:
             result, model = log_reg_basic(df1[this_feature_set + [response]], response)
+            except:
+                remaining.remove(col)
+                continue
             this_prsquared = result.prsquared
             #result.pvalues['Age']
             if this_prsquared is np.nan:
@@ -119,6 +121,7 @@ def log_reg_with_feature_selection(df, response, run_for=0, include_diagnostics=
             break
 
         full_feature_set.append(next_col)
+        print('********Adding {} with prsquared = {}********'.format(next_col,last_prsquared))
         final_model = next_model
         final_result = next_result
         remaining.remove(next_col)
