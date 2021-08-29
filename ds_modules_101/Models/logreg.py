@@ -62,6 +62,76 @@ def log_reg_basic(df,response,with_diagnostics = False):
 
     return result,model
 
+def get_interpretation(df,model,feature_list,response):
+    '''
+    Given a trained model, calculate the average probabilities due to feature changes
+    :param df: the original dataframe
+    :param X: the dataframe/numpy array used to train the model
+    :param model: the trained model used to run predictions
+    '''
+
+    df_temp = df.copy()
+    df_temp = prepare_categories(df_temp, response, drop=False)
+    X,y = prepare_data(df_temp, response, has_constant='add')
+
+    base_probability = model.predict(X[['const']+feature_list ]).mean()
+    probability_dict = dict()
+    probability_dict['base'] = base_probability
+
+    for col in df.columns:
+        for col2 in feature_list:
+            if col+'_' in col2:
+                df_temp = df.copy()
+                df_temp[col] = col2.replace(col+'_','')
+                df_temp = prepare_categories(df_temp, response, drop=False)
+                X, y = prepare_data(df_temp, response, has_constant='add')
+                for col3 in feature_list:
+                    if col3 not in X.columns:
+                        X[col3] = 0
+                probability = model.predict(X[['const']+feature_list]).mean()
+                probability_dict[col2] = probability
+            elif col == col2:
+                df_temp = df.copy()
+                df_temp[col] = df_temp[col] + 1
+                df_temp = prepare_categories(df_temp, response, drop=False)
+                X, y = prepare_data(df_temp, response, has_constant='add')
+                probability = model.predict(X[['const']+feature_list]).mean()
+                probability_dict[col2] = probability
+
+    return pd.DataFrame(data=probability_dict.values(),index=probability_dict.keys(),columns=['Probability'])
+
+
+
+    # category_feature_dict = dict()
+    #
+    # for col1 in df.columns:
+    #     for col2 in X.columns:
+    #         if col1+'_' in col2:
+    #             if category_feature_dict.has_key(col1):
+    #                 category_feature_dict[col1] = [col2]
+    #             else:
+    #                 category_feature_dict[col1].append(col2)
+    #         elif col1 == col2:
+    #             category_feature_dict[col1] = -1
+    #
+    #
+    # base_probability = model.predict(X).mean()
+    #
+    # probability_dict = dict()
+    # probability_dict['base'] = base_probability
+    #
+    # for main_col,col in category_feature_dict.items():
+    #     X_temp = X.copy()
+    #     if col != -1:
+    #         X_temp[this_col] = X_temp[this_col]+1
+    #         probability_dict[col]=model.predict(X_temp).mean()
+    #     else:
+    #         for this_col in col:
+    #             X_temp[col] = 0
+    #             X_temp[this_col] = 1
+    #             probability_dict[this_col]=model.predict(X_temp).mean()
+    #
+    # a=1
 
 def log_reg_with_feature_selection(df, response, run_for=0, include_diagnostics='Yes',get_model_and_features = False):
     start_time = time.time()
@@ -148,7 +218,7 @@ def log_reg_with_feature_selection(df, response, run_for=0, include_diagnostics=
         log_reg_basic(df1[full_feature_set + [response]], response, with_diagnostics=True)
 
     if get_model_and_features:
-        return final_result,final_model,full_feature_set + [response]
+        return final_result,final_model,full_feature_set
     else:
         return final_result
 
@@ -196,13 +266,13 @@ def logistic_regression_get_report(df,response):
     model.fit(X,y)
     preds = model.predict(X)
 
-    display(pd.DataFrame(classification_report(y,preds,output_dict=True)))
+    print(pd.DataFrame(classification_report(y,preds,output_dict=True)))
 
     print("Confusion Matrix")
     df_confusion = pd.DataFrame(confusion_matrix(y, preds))
     df_confusion.index = list(map(lambda x: 'True_' + str(x), df_confusion.index))
     df_confusion.columns = list(map(lambda x: 'Predicted_' + str(x), df_confusion.columns))
-    display(df_confusion)
+    print(df_confusion)
 
 def unit_test_1():
     import sys
@@ -212,11 +282,11 @@ def unit_test_1():
     np.random.seed(101)
     warnings.filterwarnings("ignore")
 
-    current_dir = sys.path[0]
-    data_dir = os.path.join(current_dir,'Data')
-    titanic_csv = os.path.join(data_dir,'Titanic.csv')
+    current_dir = '/'.join(sys.path[0].split('/')[:-1])  # sys.path[0]
+    data_dir = os.path.join(current_dir, 'Data', 'titanic')
+    titanic_csv = os.path.join(data_dir, 'titanic.csv')
     df = pd.read_csv(titanic_csv)
-    log_reg_result = log_reg(df[['Age','Sex','Pclass','Embarked','survived','Fare']],'Sex', include_diagnostics='Yes')
+    log_reg_result = log_reg(df[['Age','Sex','Pclass','Embarked','Survived','Fare']],'Sex', include_diagnostics='Yes')
 
     this_result = list(map(lambda x: round(x,2),log_reg_result.params))
     required_result = list(map(lambda x: round(x,2),[-1.26, -0.01, 0.14, -0.12, 1.84, 0.01]))
@@ -231,11 +301,11 @@ def unit_test_2():
     np.random.seed(101)
     warnings.filterwarnings("ignore")
 
-    current_dir = sys.path[0]
-    data_dir = os.path.join(current_dir, 'Data')
-    titanic_csv = os.path.join(data_dir, 'Titanic.csv')
+    current_dir = '/'.join(sys.path[0].split('/')[:-1])  # sys.path[0]
+    data_dir = os.path.join(current_dir, 'Data', 'titanic')
+    titanic_csv = os.path.join(data_dir, 'titanic.csv')
     df = pd.read_csv(titanic_csv)
-    log_reg_result = log_reg_with_feature_selection(df[['Age', 'Sex', 'Pclass', 'Embarked', 'survived', 'Fare']], 'Sex',
+    log_reg_result = log_reg_with_feature_selection(df[['Age', 'Sex', 'Pclass', 'Embarked', 'Survived', 'Fare']], 'Sex',
                              include_diagnostics='Yes')
 
     this_result = list(map(lambda x: round(x, 2), log_reg_result.params))
@@ -251,12 +321,12 @@ def unit_test_3():
     np.random.seed(101)
     warnings.filterwarnings("ignore")
 
-    current_dir = sys.path[0]
-    data_dir = os.path.join(current_dir, 'Data')
-    titanic_csv = os.path.join(data_dir, 'Titanic.csv')
+    current_dir = '/'.join(sys.path[0].split('/')[:-1])  # sys.path[0]
+    data_dir = os.path.join(current_dir, 'Data', 'titanic')
+    titanic_csv = os.path.join(data_dir, 'titanic.csv')
     df = pd.read_csv(titanic_csv)
-    df['Sex'] = df['Sex'].map({0:'Woman',1:'Man'})
-    log_reg_result = log_reg_with_feature_selection(df[['Age', 'Sex', 'Pclass', 'Embarked', 'survived', 'Fare']], 'Sex',
+    df['Sex'] = df['Sex'].map({'male':0,'female':1})
+    log_reg_result = log_reg_with_feature_selection(df[['Age', 'Sex', 'Pclass', 'Embarked', 'Survived', 'Fare']], 'Sex',
                              include_diagnostics='Yes')
 
     this_result = list(map(lambda x: round(x, 2), log_reg_result.params))
@@ -264,7 +334,37 @@ def unit_test_3():
 
     assert (sorted(this_result) == sorted(required_result))
 
+def unit_test_4():
+    import sys
+    import os
+    import warnings
+
+    np.random.seed(101)
+    warnings.filterwarnings("ignore")
+
+    current_dir = '/'.join(sys.path[0].split('/')[:-1])
+    data_dir = os.path.join(current_dir, 'Data','titanic')
+    titanic_csv = os.path.join(data_dir, 'titanic.csv')
+    df = pd.read_csv(titanic_csv)
+    df['Sex'] = df['Sex'].astype('str')
+    df['Pclass'] = df['Pclass'].astype('str')
+    df['Embarked'] = df['Embarked'].astype('str')
+    log_reg_result,mod,ls_features = log_reg_with_feature_selection(df[['Age', 'Sex', 'Pclass', 'Embarked', 'Survived', 'Fare']], 'Survived',
+                             include_diagnostics='Yes',get_model_and_features=True)
+
+    this_result = list(map(lambda x: round(x, 2), log_reg_result.params))
+    required_result = list(map(lambda x: round(x, 2), [-0.06, 2.52, -1.27, -0.04, 1.31]))
+
+    assert (sorted(this_result) == sorted(required_result))
+
+    this_result = list(get_interpretation(df, log_reg_result, ls_features, 'Survived')['Probability'])
+    this_result = list(map(lambda x: round(x, 2), this_result))
+    required_result = list(map(lambda x: round(x, 2), [0.4061624649859944, 0.25223841573517486, 0.6763999835565675, 0.7058952876389857, 0.40078780998920716]))
+
+    assert (sorted(this_result) == sorted(required_result))
+
 if __name__ == '__main__':
     # unit_test_1()
     # unit_test_2()
-    unit_test_3()
+    # unit_test_3()
+    unit_test_4()
