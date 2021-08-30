@@ -50,6 +50,11 @@ class LogisticRegressionClass:
             round(cvs['test_recall'].mean(), 2), round(cvs['test_roc_auc'].mean(), 2))
 
         self.performance = s
+        self.performance_df = pd.DataFrame(data=[round(cvs['test_accuracy'].mean(), 2), round(cvs['test_f1'].mean(), 2),
+            round(cvs['test_precision'].mean(), 2),
+            round(cvs['test_recall'].mean(), 2), round(cvs['test_roc_auc'].mean(), 2)],
+                              index=['test_accuracy','test_f1','test_precision','test_recall','test_roc_auc'],
+                                           columns=['Score'])
 
         return s
 
