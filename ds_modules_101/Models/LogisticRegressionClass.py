@@ -49,15 +49,20 @@ class LogisticRegressionClass:
             round(cvs['test_precision'].mean(), 2),
             round(cvs['test_recall'].mean(), 2), round(cvs['test_roc_auc'].mean(), 2))
 
+        self.performance = s
+
         return s
 
-    def log_reg_diagnostic_correlations(X):
+    def log_reg_diagnostic_correlations(self,X):
         print("Correlations")
         fig = plt.figure(figsize=(10, 10))
         ax = fig.add_subplot(1, 1, 1)
 
         upp_mat = np.triu(X.corr())
         sns.heatmap(X.corr(), vmin=-1, vmax=+1, annot=True, cmap='coolwarm', mask=upp_mat, ax=ax)
+
+        self.fig_correlations = fig
+        self.ax_correlations = ax
 
         return fig,ax
 
@@ -76,6 +81,8 @@ class LogisticRegressionClass:
             print("Confusion Matrix")
             print(df_confusion)
 
+        self.df_confusion = df_confusion
+        self.df_classification_report = df_classification_report
 
         return df_confusion
 
