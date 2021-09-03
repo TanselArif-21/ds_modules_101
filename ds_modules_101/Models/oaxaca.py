@@ -3,12 +3,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 import statsmodels.api as sm
-from sklearn.preprocessing import PolynomialFeatures
-import statsmodels.formula.api as smf
-import scipy
-import plotly.express as px
 import plotly.graph_objects as go
-import plotly
 import os
 from pandas.api.types import is_numeric_dtype
 import warnings
@@ -16,16 +11,16 @@ import warnings
 class Oaxaca:
     '''
     Example usage:
+    import ds_modules_101.Models as dsm
+    import ds_modules_101.Data as dsd
     df=dsd.titanic_df
-    df['dummy_col'] = '1'
-
-    my_oaxaca = dsm.Oaxaca(df=df,grp_col='Sex',ctry_col='dummy_col',response='Fare',ctry='1',grp_groups=['male','female'],
-                      grp_groups2 = None,dummy_cols = ['Survived','Pclass','Embarked'],
-                d=dict(),
-                all_factors = ['Survived','Pclass','Age','Embarked'], org_cols_cat = [],response_transform_func = (lambda x: x),response_inverse_transform_func = (lambda x: x),
-                impute_cols = [],output_location=None)
-
-    figs,s,m1,m2=my_oaxaca.run_oaxaca_analysis()
+    my_oaxaca = dsm.Oaxaca(df, grp_col='Sex', response='Fare', grp_groups=['male', 'female'],
+           dummy_cols=['Survived', 'Pclass', 'SibSp','Parch'],
+           all_factors=['Survived', 'Pclass', 'Age', 'SibSp','Parch'],
+                       response_transform_func=np.log,
+                       response_inverse_transform_func=np.exp)
+    my_oaxaca.run_oaxaca_analysis()
+    my_oaxaca.figs[2].show()
     '''
 
     def __init__(self,df,response,grp_col,grp_groups=None,
@@ -47,6 +42,7 @@ class Oaxaca:
             or lambda x: x as an identity function (i.e. no transform). None also applied the identity function.
         :param output_location: the output folder path to store the results if required
         '''
+
         # saving variables to the object
         self.df = df.copy()
         self.response = response
@@ -483,7 +479,6 @@ class Oaxaca:
         if self.output_location: 
             #fig.write_image(os.path.join(self.output_location,'model_explained_prop_{}.png'.format(self.ctry)))
             fig.write_html(os.path.join(self.output_location,'model_explained_prop.html'))
-        self.figs.append(fig)
 
         import plotly.express as px
 
@@ -495,8 +490,6 @@ class Oaxaca:
         if self.output_location: 
             #fig.write_image(os.path.join(self.output_location,'model_explained_prop_barplot_{}.png'.format(self.ctry)))
             fig.write_html(os.path.join(self.output_location,'model_explained_prop_barplot.html'))
-
-        self.figs.append(fig)
 
         diff_to_explain = self.response_inverse_transform_func(avg_for_group[self.denom]) - self.response_inverse_transform_func(avg_for_group[temp_grps[0]])
 
@@ -591,9 +584,8 @@ class Oaxaca:
             #fig.write_image(os.path.join(self.output_location,'model_waterfall_{}.png'.format(self.ctry)))
             fig.write_html(os.path.join(self.output_location,'model_waterfall_{}.html'.format(self.ctry)))
 
-        self.figs.append(fig)
-
-        return dic_output['figs'],dic_output['s'],self.lin_model_fit_3.summary(),self.model_grp_summary
+        self.figs = dic_output['figs']
+        self.s = dic_output['s']
      
 
 def unit_test_1():
@@ -628,48 +620,6 @@ def unit_test_1():
     result_actual = list(map(lambda x: round(x, 2), result_actual))
 
     assert (sorted(result_required) == sorted(result_actual))
-
-#     result_required = 0.4061624649859944
-#     result_actual = my_logistic_regresion_class.result_with_feature_selection.predict(my_logistic_regresion_class.X_with_feature_selection).mean()
-#
-#     result_required = round(result_required, 2)
-#     result_actual = round(result_actual, 2)
-#
-#     assert (result_required == result_actual)
-#
-#     result_required = '''Performance (0 is negative 1 is positive)
-# 5-Fold Cross Validation Results:
-# Test Set accuracy = 0.8
-# f1 = 0.74
-# precision = 0.78
-# recall = 0.72
-# auc = 0.85'''
-#
-#     result_actual = my_logistic_regresion_class.log_reg_diagnostic_performance(my_logistic_regresion_class.X_with_feature_selection,
-#                                                                                my_logistic_regresion_class.y_with_feature_selection)
-#
-#     assert (result_required == result_actual)
-#
-#     result_required = [0.4061624649859944, 0.236473141666754, 0.7141621577909735, 0.3998399415589254, 0.3537524130019424]
-#     result_actual = list(my_logistic_regresion_class.get_interpretation(my_logistic_regresion_class.result_with_feature_selection,
-#                                                                         my_logistic_regresion_class.X_with_feature_selection.columns)[
-#                              'Probability'])
-#
-#     result_required = list(map(lambda x: round(x, 2), result_required))
-#     result_actual = list(map(lambda x: round(x, 2), result_actual))
-#
-#     assert (result_required == result_actual)
-#
-#     result_required = [365, 59, 78, 212]
-#     result_actual = my_logistic_regresion_class.logistic_regression_get_report(
-#         my_logistic_regresion_class.result_with_feature_selection,
-#         my_logistic_regresion_class.X_with_feature_selection,
-#         my_logistic_regresion_class.y_with_feature_selection,verbose=False)
-#
-#     result_required = list(map(lambda x: round(x, 2), result_required))
-#     result_actual = list(map(lambda x: round(x, 2), list(np.array(result_actual).flatten())))
-#
-#     assert (result_required == result_actual)
 
     print('Success!')
 
