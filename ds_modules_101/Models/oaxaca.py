@@ -181,7 +181,7 @@ class Oaxaca:
         self.denom = denom
 
 
-    def gap(self,t,denom,grp_col1,grp_col2):
+    def gap(self,t):
         '''
         Gets the raw gap between the groups for a specific country
         :param df: a dataframe
@@ -198,7 +198,7 @@ class Oaxaca:
         g1 = t_temp[t_temp[self.grp_col]==self.grp_groups[0]][self.response].iloc[0]
         g2 = t_temp[t_temp[self.grp_col]==self.grp_groups[1]][self.response].iloc[0]
         
-        if denom == self.grp_groups[0]:
+        if self.denom == self.grp_groups[0]:
             s = 'Raw Gap ({denom}-{num})/{denom} = {res:.2f}% or {denom} - {num} = {res2:.2f}'.format(denom=self.grp_groups[0],num=self.grp_groups[1],res=(g1-g2)*100/g1,res2=(g1-g2))
             if self.verbose != 0:
                 print(s)
@@ -398,7 +398,7 @@ class Oaxaca:
         self.set_denom(t)
 
         # report the raw gap
-        dic_output['s'].append(self.gap(t,self.denom,self.grp_groups[0],self.grp_groups[1]))
+        dic_output['s'].append(self.gap(t))
 
         # get the numerical column names based on the user specified columns above 
         org_cols_num = list(set(self.all_factors) - set(self.dummy_cols)) + extra_factors
@@ -616,7 +616,7 @@ def unit_test_1():
            dummy_cols=['Survived', 'Pclass', 'SibSp','Parch'],
            all_factors=['Survived', 'Pclass', 'Age', 'SibSp','Parch'],
                        response_transform_func=np.log,
-                       response_inverse_transform_func=np.exp)
+                       response_inverse_transform_func=np.exp,verbose=0)
     my_oaxaca.run_oaxaca_analysis()
 
     result_required = [3.490755216840938, -0.10703341622945511, 1.7817109779453175, -0.6170001903131179, 0.5109449084371861, -0.6641981700074011, -0.3343154517849804, -0.2507091851612552, 0.4738562106245683, 0.44288919159484136]
