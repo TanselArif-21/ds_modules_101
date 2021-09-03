@@ -27,7 +27,7 @@ class Oaxaca:
                  dummy_cols = None,
                 higher_order_dict=dict(),
                 all_factors = None, response_transform_func = None,response_inverse_transform_func = None,
-                output_location=None):
+                output_location=None,verbose=0):
         '''
         :param df: the dataframe
         :param response: the response variable that has a gap between the groups we want to investigate. Should be numerical
@@ -54,6 +54,7 @@ class Oaxaca:
         self.response_transform_func = response_transform_func
         self.response_inverse_transform_func = response_inverse_transform_func
         self.output_location = output_location
+        self.verbose = verbose
 
         # check that the dataframe has at least 1 row
         if len(self.df) == 0:
@@ -199,10 +200,12 @@ class Oaxaca:
         
         if denom == self.grp_groups[0]:
             s = 'Raw Gap ({denom}-{num})/{denom} = {res:.2f}% or {denom} - {num} = {res2:.2f}'.format(denom=self.grp_groups[0],num=self.grp_groups[1],res=(g1-g2)*100/g1,res2=(g1-g2))
-            print(s)
+            if self.verbose != 0:
+                print(s)
         else:
             s = 'Raw Gap ({denom}-{num})/{denom} = {res:.2f}% or {denom} - {num} = {res2:.2f}'.format(denom=self.grp_groups[1],num=self.grp_groups[0],res=(g2-g1)*100/g2,res2=(g2-g1))
-            print(s)
+            if self.verbose != 0:
+                print(s)
             
         if self.output_location is not None:
             f = open(os.path.join(self.output_location,'raw_pay_gap_{}.txt'.format(self.ctry)), "w")
@@ -225,8 +228,6 @@ class Oaxaca:
                     A dictionary with the country parameters, a list of the chosen variables for this country, a list of
                     the adjusted r2 values at each addition of a variable and the final chosen model.
         '''
-        import warnings
-        
         t = t.copy()
 
         first_pass = True
@@ -302,7 +303,8 @@ class Oaxaca:
                 chosen_variables.append(last_variable)
                 chosen_model.append(last_model)
                 s = '\nChose variable {} with r2 {} and pvalue {}'.format(last_variable,last_r2,last_anova_pvalue)
-                print(s)
+                if self.verbose != 0:
+                    print(s)
             else:
                 ls_remaining.remove(last_variable)
                 ls.append(last_variable)
@@ -311,7 +313,8 @@ class Oaxaca:
                 chosen_model.append(last_model)
 
                 s = '\nChose variable {} with r2 {} and pvalue {}'.format(last_variable,last_r2,last_anova_pvalue)
-                print(s)
+                if self.verbose != 0:
+                    print(s)
                 
             if self.output_location: 
                 f = open(os.path.join(self.output_location,'model_diagnostics.txt'), "a")
@@ -327,10 +330,11 @@ class Oaxaca:
                 f.write(self.lin_model_fit_3.summary().as_text())
                 f.close()
 
-            print(self.lin_model_fit_3.summary())
+            if self.verbose != 0:
+                print(self.lin_model_fit_3.summary())
 
 
-    def single_model(self,t,this_grp,silent=False):
+    def single_model(self,t,this_grp):
         '''
         Returns a combined model along with the important/significant factors as well as the metrics of the model
         :param df: a dataframe
@@ -358,7 +362,7 @@ class Oaxaca:
         lin_model = sm.OLS(y,X,missing = 'drop')
         lin_model_fit_grp = lin_model.fit()
 
-        if not silent:
+        if self.verbose != 0:
             print(lin_model_fit_grp.summary())
 
         self.model_grp_summary[this_grp] = lin_model_fit_grp.summary()
@@ -375,7 +379,7 @@ class Oaxaca:
         return lin_model_fit_grp,X_grp_average,grp_avg
     
     
-    def run_oaxaca_analysis(self):
+    def run_oaxaca_analysis(self,verbose=0):
         dic_output = dict()
         dic_output['s'] = []
         dic_output['figs'] = []
@@ -417,7 +421,7 @@ class Oaxaca:
         X_avg_for_group = dict()
         avg_for_group = dict()
         for this_grp in t[self.grp_col].unique():
-            lin_model_fit_grp,X_grp_average,grp_avg = self.single_model(t,this_grp,silent=False)
+            lin_model_fit_grp,X_grp_average,grp_avg = self.single_model(t,this_grp)
             lin_model_fit_for_group[this_grp] = lin_model_fit_grp
             X_avg_for_group[this_grp] = X_grp_average
             avg_for_group[this_grp] = grp_avg
@@ -442,7 +446,8 @@ class Oaxaca:
             try:
                 d = X_diff.loc[0,[x for x in X_diff.columns if factor in x]].dot(lin_model_fit_for_group[self.denom].params[[x for x in X_diff.columns if factor in x]])
                 differences_in_factors[factor] = d
-                print('Difference in {} accounts for a contribution to the difference of {}'.format(factor,d))
+                if self.verbose != 0:
+                    print('Difference in {} accounts for a contribution to the difference of {}'.format(factor,d))
             except:
                 pass
 
@@ -494,7 +499,8 @@ class Oaxaca:
         diff_to_explain = self.response_inverse_transform_func(avg_for_group[self.denom]) - self.response_inverse_transform_func(avg_for_group[temp_grps[0]])
 
         s = 'Difference to explain after log transform = {:.3f}'.format(diff_to_explain)
-        print('Difference to explain after log transform = {:.3f}'.format(diff_to_explain))
+        if self.verbose != 0:
+            print('Difference to explain after log transform = {:.3f}'.format(diff_to_explain))
         
         if self.output_location: 
             f = open(os.path.join(self.output_location,'model_diagnostics_{}.txt'.format(this_grp)), "a")

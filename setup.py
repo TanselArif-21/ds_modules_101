@@ -5,7 +5,7 @@ with open('README.md') as readme_file:
 
 setup_args = dict(
     name='ds_modules_101',
-    version='0.3.7',
+    version='0.3.8',
     description="A small package to help with some routine Data Science activities",
     long_description_content_type="text/markdown",
     long_description=README,
