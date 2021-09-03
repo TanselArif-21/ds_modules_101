@@ -199,11 +199,11 @@ class Oaxaca:
         g2 = t_temp[t_temp[self.grp_col]==self.grp_groups[1]][self.response].iloc[0]
         
         if self.denom == self.grp_groups[0]:
-            s = 'Raw Gap ({num}-{denom})/{denom} = {res:.2f}% or {num} - {denom} = {res2:.2f}'.format(denom=self.grp_groups[0],num=self.grp_groups[1],res=(g2-g1)*100/g1,res2=(g2-g1))
+            s = 'Raw Gap ({num}-{denom})/{num} = {res:.2f}% or {num} - {denom} = {res2:.2f}'.format(denom=self.grp_groups[0],num=self.grp_groups[1],res=(g2-g1)*100/g2,res2=(g2-g1))
             if self.verbose != 0:
                 print(s)
         else:
-            s = 'Raw Gap ({num}-{denom})/{denom} = {res:.2f}% or {num} - {denom} = {res2:.2f}'.format(denom=self.grp_groups[1],num=self.grp_groups[0],res=(g1-g2)*100/g2,res2=(g1-g2))
+            s = 'Raw Gap ({num}-{denom})/{num} = {res:.2f}% or {num} - {denom} = {res2:.2f}'.format(denom=self.grp_groups[1],num=self.grp_groups[0],res=(g1-g2)*100/g1,res2=(g1-g2))
             if self.verbose != 0:
                 print(s)
             
