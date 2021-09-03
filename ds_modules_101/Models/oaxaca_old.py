@@ -629,7 +629,10 @@ def unit_test_1():
     df['Dummy'] = '1'
     my_oaxaca = Oaxaca(df, grp_col='Sex', response='Fare', grp_groups=['male', 'female'],
            dummy_cols=['Survived', 'Pclass', 'SibSp','Parch'],
-           all_factors=['Survived', 'Pclass', 'Age', 'SibSp','Parch'],d=dict(),ctry_col='Dummy',ctry='1')
+           all_factors=['Survived', 'Pclass', 'Age', 'SibSp','Parch'],d=dict(),ctry_col='Dummy',ctry='1',
+                       response_transform_func=np.log,
+                       response_inverse_transform_func=np.exp
+                       )
     figs,_,_,_ = my_oaxaca.run_oaxaca_analysis()
 
     result_required = [3.490755216840938, -0.10703341622945511, 1.7817109779453175, -0.6170001903131179, 0.5109449084371861, -0.6641981700074011, -0.3343154517849804, -0.2507091851612552, 0.4738562106245683, 0.44288919159484136]
