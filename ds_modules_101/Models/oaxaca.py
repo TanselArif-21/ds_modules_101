@@ -175,8 +175,8 @@ class Oaxaca:
         '''
 
         grp = t[[self.grp_col,self.response]].groupby(by=[self.grp_col]).mean().reset_index()
-        grp = grp.sort_values(self.response, ascending=False)
-        denom = grp[self.grp_col][0]
+        grp = grp.sort_values(self.response, ascending=True)
+        denom = list(grp[self.grp_col])[0]
 
         self.denom = denom
 
@@ -199,11 +199,11 @@ class Oaxaca:
         g2 = t_temp[t_temp[self.grp_col]==self.grp_groups[1]][self.response].iloc[0]
         
         if self.denom == self.grp_groups[0]:
-            s = 'Raw Gap ({denom}-{num})/{denom} = {res:.2f}% or {denom} - {num} = {res2:.2f}'.format(denom=self.grp_groups[0],num=self.grp_groups[1],res=(g1-g2)*100/g1,res2=(g1-g2))
+            s = 'Raw Gap ({num}-{denom})/{denom} = {res:.2f}% or {num} - {denom} = {res2:.2f}'.format(denom=self.grp_groups[0],num=self.grp_groups[1],res=(g2-g1)*100/g1,res2=(g2-g1))
             if self.verbose != 0:
                 print(s)
         else:
-            s = 'Raw Gap ({denom}-{num})/{denom} = {res:.2f}% or {denom} - {num} = {res2:.2f}'.format(denom=self.grp_groups[1],num=self.grp_groups[0],res=(g2-g1)*100/g2,res2=(g2-g1))
+            s = 'Raw Gap ({num}-{denom})/{denom} = {res:.2f}% or {num} - {denom} = {res2:.2f}'.format(denom=self.grp_groups[1],num=self.grp_groups[0],res=(g1-g2)*100/g2,res2=(g1-g2))
             if self.verbose != 0:
                 print(s)
             
@@ -431,12 +431,15 @@ class Oaxaca:
 
         temp_grps.remove(self.denom)
         diff = avg_for_group[self.denom] - avg_for_group[temp_grps[0]]
+        diff = -diff
 
         diff_coeffs = lin_model_fit_for_group[self.denom].params - lin_model_fit_for_group[temp_grps[0]].params
+        diff_coeffs = -diff_coeffs
 
         # potential discrimination diff
         unexplained_diff = X_avg_for_group[temp_grps[0]].dot(diff_coeffs)
         X_diff = X_avg_for_group[self.denom].subtract(X_avg_for_group[temp_grps[0]])
+        X_diff = -X_diff
         explained_diff = X_diff.dot(lin_model_fit_for_group[self.denom].params)
 
 
@@ -497,7 +500,7 @@ class Oaxaca:
             fig.write_html(os.path.join(self.output_location,'model_explained_prop_barplot.html'))
 
         diff_to_explain = self.response_inverse_transform_func(avg_for_group[self.denom]) - self.response_inverse_transform_func(avg_for_group[temp_grps[0]])
-
+        diff_to_explain = -diff_to_explain
         s = 'Difference to explain after log transform = {:.3f}'.format(diff_to_explain)
         if self.verbose != 0:
             print('Difference to explain after log transform = {:.3f}'.format(diff_to_explain))
@@ -523,7 +526,7 @@ class Oaxaca:
         avg_log_pay_for_group[temp_grps[0]] = X_avg_for_group[temp_grps[0]].dot(lin_model_fit_for_group[self.denom].params)
 
         explainable_gap = self.response_inverse_transform_func(avg_log_pay_for_group[self.denom]) - self.response_inverse_transform_func(avg_log_pay_for_group[temp_grps[0]])
-
+        explainable_gap = -explainable_gap
         unexplained_gap = diff_to_explain - explainable_gap
 
         df_factor_effects = pd.DataFrame(factor_effects)
@@ -531,14 +534,14 @@ class Oaxaca:
         df_factor_effects.columns = ['Factor','ln({}yearlypay)'.format(temp_grps[0])]
         df_factor_effects['ln({}yearlypay_as{})'.format(temp_grps[0],self.denom)] = avg_log_pay_for_group[temp_grps[0]][0]
 
-        df_factor_effects['Difference_in_variable'] = df_factor_effects[['ln({}yearlypay)'.format(temp_grps[0]),'ln({}yearlypay_as{})'.format(temp_grps[0],self.denom)]].apply(lambda x: self.response_inverse_transform_func(x[0])-self.response_inverse_transform_func(x[1]),axis=1)
+        df_factor_effects['Difference_in_variable'] = -df_factor_effects[['ln({}yearlypay)'.format(temp_grps[0]),'ln({}yearlypay_as{})'.format(temp_grps[0],self.denom)]].apply(lambda x: self.response_inverse_transform_func(x[0])-self.response_inverse_transform_func(x[1]),axis=1)
         df_factor_effects.sort_values(by='Difference_in_variable',inplace=True,ascending=True)
 
         fig=plt.figure(figsize=(10,5))
         ax=fig.add_subplot(1,1,1)
 
         sns.barplot(y='Factor',x='Difference_in_variable',data=df_factor_effects,ax=ax,orient='h')
-        ax.set_title('Change change for {} if their factors were treated the same as {} ({} paid more)'.format(temp_grps[0],self.denom,self.denom))
+        ax.set_title('Change in {} for {} if their factors were treated the same as {} ({} paid more)'.format(self.response,self.denom,temp_grps[0],temp_grps[0]))
 
         ax.set_ylabel('Factor equated between {} and {}'.format(self.denom,temp_grps[0]))
         #plt.xticks(rotation=90)
@@ -612,7 +615,8 @@ def unit_test_1():
     df = pd.read_csv(titanic_csv)
     df = df[['Survived', 'Pclass', 'Sex', 'Age', 'SibSp','Parch', 'Fare']]
     df = df.dropna()
-    my_oaxaca = Oaxaca(df, grp_col='Sex', response='Fare', grp_groups=['male', 'female'],
+    #df['Sex'] = df['Sex'].apply(lambda x: 0 if x == 'male' else 1 if x =='female' else 0)
+    my_oaxaca = Oaxaca(df, grp_col='Sex', response='Fare', grp_groups=['male','female'],
            dummy_cols=['Survived', 'Pclass', 'SibSp','Parch'],
            all_factors=['Survived', 'Pclass', 'Age', 'SibSp','Parch'],
                        response_transform_func=np.log,
