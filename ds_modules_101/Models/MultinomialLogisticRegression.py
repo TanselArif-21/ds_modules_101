@@ -43,7 +43,7 @@ class MultinomialLogisticRegressionClass:
 
     def log_reg_diagnostic_performance(self,X,y):
         cvs = cross_validate(LogisticRegression(), X, y, cv=5,
-                             scoring=['accuracy', 'f1', 'precision', 'recall', 'roc_auc'])
+                             scoring=['accuracy'])
         s = """Performance (0 is negative 1 is positive)\n5-Fold Cross Validation Results:\nTest Set accuracy = {}""".format(
             round(cvs['test_accuracy'].mean(), 2))
 
@@ -591,6 +591,92 @@ def unit_test_5():
 
     assert (sorted(result_required) == sorted(result_actual))
 
+    result_required = 0.020833333334792172
+    result_actual = my_logistic_regresion_class.basic_result.predict(my_logistic_regresion_class.X).mean()[1]
+
+    result_required = round(result_required, 2)
+    result_actual = round(result_actual, 2)
+
+    assert (result_required == result_actual)
+
+    result_required = '''Performance (0 is negative 1 is positive)
+5-Fold Cross Validation Results:
+Test Set accuracy = 0.97'''
+
+    result_actual = my_logistic_regresion_class.log_reg_diagnostic_performance(my_logistic_regresion_class.X,
+                                                                               my_logistic_regresion_class.y)
+
+    assert (result_required == result_actual)
+
+    result_required = [0.02, 0.0, 0.02, 0.02, 0.02]
+    result_actual = list(my_logistic_regresion_class.get_interpretation(my_logistic_regresion_class.basic_result,
+                                                                        my_logistic_regresion_class.X.columns, i=1)[
+                             'Probability'])
+
+    result_required = list(map(lambda x: round(x, 2), result_required))
+    result_actual = list(map(lambda x: round(x, 2), result_actual))
+
+    assert (result_required == result_actual)
+
+    print('Success!')
+
+
+def unit_test_6():
+    print('Unit test 5...')
+    import sys
+    import os
+    import warnings
+
+    np.random.seed(101)
+    warnings.filterwarnings("ignore")
+
+    current_dir = '/'.join(sys.path[0].split('/')[:-1])  # sys.path[0]
+    data_dir = os.path.join(current_dir, 'Data', 'ibd')
+    ibd_csv = os.path.join(data_dir, 'IBD.csv')
+    df = pd.read_csv(ibd_csv)
+    # df['Sex'] = df['Sex'].map({'male': 0, 'female': 1})
+    df = df[['Status', 'Gender']]
+
+    #df = df.dropna()
+
+    my_logistic_regresion_class = MultinomialLogisticRegressionClass(df,'Gender',sig_level=0.05)
+    my_logistic_regresion_class.log_reg()
+
+    result_required = [-3.7689221652361153, -18.294947973337308, 0.05535009853180695, 0.014903408951217416]
+    result_actual = list(my_logistic_regresion_class.result.params[0])
+
+    result_required = list(map(lambda x: round(x, 2), result_required))
+    result_actual = list(map(lambda x: round(x, 2), result_actual))
+
+    assert (sorted(result_required) == sorted(result_actual))
+
+    result_required = 0.021978021978081973
+    result_actual = my_logistic_regresion_class.basic_result.predict(my_logistic_regresion_class.X).mean()[1]
+
+    result_required = round(result_required, 2)
+    result_actual = round(result_actual, 2)
+
+    assert (result_required == result_actual)
+
+    result_required = '''Performance (0 is negative 1 is positive)
+5-Fold Cross Validation Results:
+Test Set accuracy = 0.97'''
+
+    result_actual = my_logistic_regresion_class.log_reg_diagnostic_performance(my_logistic_regresion_class.X,
+                                                                               my_logistic_regresion_class.y)
+
+    assert (result_required == result_actual)
+
+    result_required = [0.02, 0.0, 0.02, 0.02]
+    result_actual = list(my_logistic_regresion_class.get_interpretation(my_logistic_regresion_class.basic_result,
+                                                                        my_logistic_regresion_class.X.columns, i=1)[
+                             'Probability'])
+
+    result_required = list(map(lambda x: round(x, 2), result_required))
+    result_actual = list(map(lambda x: round(x, 2), result_actual))
+
+    assert (result_required == result_actual)
+
     print('Success!')
 
 if __name__ == '__main__':
@@ -599,3 +685,4 @@ if __name__ == '__main__':
     unit_test_3()
     unit_test_4()
     unit_test_5()
+    unit_test_6()
