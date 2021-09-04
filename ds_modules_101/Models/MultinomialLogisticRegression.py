@@ -31,13 +31,13 @@ class MultinomialLogisticRegressionClass:
         return X, y
 
     def logistic_regression_utility_check_response(self,series):
-        if (len(series.unique()) > 2):
-            print('The response variable has more than 2 categories and is not suitable for logistic regression')
-            return False
-
-        if (not is_numeric_dtype(series)):
-            print('The response variable should be binary 0 and 1 and numeric type (i.e. int)')
-            return False
+        # if (len(series.unique()) > 2):
+        #     print('The response variable has more than 2 categories and is not suitable for logistic regression')
+        #     return False
+        #
+        # if (not is_numeric_dtype(series)):
+        #     print('The response variable should be binary 0 and 1 and numeric type (i.e. int)')
+        #     return False
 
         return True
 
@@ -553,8 +553,49 @@ Test Set accuracy = 0.8'''
 
     print('Success!')
 
+
+def unit_test_5():
+    print('Unit test 5...')
+    import sys
+    import os
+    import warnings
+
+    np.random.seed(101)
+    warnings.filterwarnings("ignore")
+
+    current_dir = '/'.join(sys.path[0].split('/')[:-1])  # sys.path[0]
+    data_dir = os.path.join(current_dir, 'Data', 'ibd')
+    ibd_csv = os.path.join(data_dir, 'IBD.csv')
+    df = pd.read_csv(ibd_csv)
+    # df['Sex'] = df['Sex'].map({'male': 0, 'female': 1})
+    df = df[['Status', 'Gender', 'Age']]
+
+    def my_func(x):
+        try:
+            return int(x[:2])
+        except:
+            return np.nan
+
+    df['Age'] = df['Age'].apply(lambda x: my_func(x[:2]))
+
+    df = df.dropna()
+
+    my_logistic_regresion_class = MultinomialLogisticRegressionClass(df,'Gender',sig_level=0.05)
+    my_logistic_regresion_class.log_reg()
+
+    result_required = [-5.533394723909239, 0.09328400187935036, -16.998465984594862, 0.18473304831129508, 0.030526962770570983]
+    result_actual = list(my_logistic_regresion_class.result.params[0])
+
+    result_required = list(map(lambda x: round(x, 2), result_required))
+    result_actual = list(map(lambda x: round(x, 2), result_actual))
+
+    assert (sorted(result_required) == sorted(result_actual))
+
+    print('Success!')
+
 if __name__ == '__main__':
     unit_test_1()
     unit_test_2()
     unit_test_3()
     unit_test_4()
+    unit_test_5()
