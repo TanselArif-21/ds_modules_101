@@ -23,6 +23,10 @@ class MultinomialLogisticRegressionClass:
         self.response = response
         self.sig_level = sig_level
 
+        # to go from encoded to non encoded
+        self.label_encoder = LabelEncoder()
+        self.label_encoder.fit(df[response])
+
 
     def prepare_data(self,df,response):
         y = df[response]
@@ -71,9 +75,7 @@ class MultinomialLogisticRegressionClass:
     def logistic_regression_get_report(self,model,X,y,verbose=False):
 
         preds = model.predict(X)
-        label_encoder = LabelEncoder()
-        label_encoder.fit(y)
-        pred_labels = label_encoder.inverse_transform(np.argmax(np.array(preds), axis=1))
+        pred_labels = self.label_encoder.inverse_transform(np.argmax(np.array(preds), axis=1))
         df_classification_report = pd.DataFrame(classification_report(y, pred_labels, output_dict=True))
 
         df_confusion = pd.DataFrame(confusion_matrix(y,pred_labels))
@@ -114,6 +116,8 @@ class MultinomialLogisticRegressionClass:
         if 'const' not in full_feature_list:
             full_feature_list = ['const'] + full_feature_list
 
+        if i in y.unique():
+            i = self.label_encoder.transform([i])[0]
         # get a base probability (this is just the average probability)
         base_probability = result.predict(X[full_feature_list]).mean()[i]
         probability_dict = dict()
@@ -626,7 +630,7 @@ Test Set accuracy = 0.97'''
 
 
 def unit_test_6():
-    print('Unit test 5...')
+    print('Unit test 6...')
     import sys
     import os
     import warnings
@@ -673,7 +677,7 @@ Test Set accuracy = 0.97'''
 
     result_required = [0.02, 0.0, 0.02, 0.02]
     result_actual = list(my_logistic_regresion_class.get_interpretation(my_logistic_regresion_class.basic_result,
-                                                                        my_logistic_regresion_class.X.columns, i=1)[
+                                                                        my_logistic_regresion_class.X.columns, i='Female')[
                              'Probability'])
 
     result_required = list(map(lambda x: round(x, 2), result_required))
