@@ -33,7 +33,7 @@ class Oaxaca:
         :param response: the response variable that has a gap between the groups we want to investigate. Should be numerical
         :param grp_col: the column containing the two groups to compare the differences between
         :param grp_groups: the two groups we want to compare. If None it will select a random 2 to compare
-        :param dummy_cols: the list of columns to dummify. These are the categorical columns
+        :param dummy_cols: the list of columns to dummify. These are the categorical columns. Give 'infer' for the algorithm to infer categorical columns
         :param higher_order_dict: a dictionary containing higher order versions of numerical variables to apply. e.g.
             if we want Age^2, Age^3 and LENGTH_OF_SERVICE_IN_YRS^2 we provide dict((('Age',[2,3]),('LENGTH_OF_SERVICE_IN_YRS',[2])))
         :param all_factors: the full list of factors to try. If None it will include all columns from the dataframe
@@ -44,7 +44,7 @@ class Oaxaca:
         '''
 
         # saving variables to the object
-        self.df = df[[response,grp_col]+dummy_cols+all_factors].copy()
+        self.df = df.copy()
         self.response = response
         self.grp_col = grp_col
         self.grp_groups = grp_groups
@@ -67,6 +67,13 @@ class Oaxaca:
             except:
                 raise Exception('The response variable is not of numeric type and could not be converted to float!')
 
+        # if dummy cols are to be infered
+        if self.dummy_cols == 'infer':
+            self.dummy_cols = []
+            for col in all_factors:
+                if not is_numeric_dtype(self.df[col]):
+                    self.dummy_cols.append(col)
+
         # check that the group col has at least 2 groups
         if len(list(map(lambda x: not pd.isna(x),self.df[grp_col].unique()))) < 2:
             raise Exception('There should be more than one non nan group in the column {}'.format(grp_col))
@@ -77,6 +84,9 @@ class Oaxaca:
         # if no dummy columns have been specified set it to an empty list
         if self.dummy_cols is None:
             self.dummy_cols = []
+
+        if (self.all_factors is None) or (self.all_factors == []):
+            self.all_factors = list(set(self.df.columns) - set(response) - set(self.dummy_cols) - set(self.grp_col))
 
         # the instructions to create higher power factors
         if self.higher_order_dict is None:
@@ -95,6 +105,7 @@ class Oaxaca:
         self.df = self.df.replace(np.inf, np.nan)
 
         self.df[response] = self.df[response].astype('float')
+        self.df = self.df[[self.response, self.grp_col] + self.dummy_cols + self.all_factors].copy()
 
         # to store the model summaries for each group
         self.model_grp_summary = dict()
@@ -650,7 +661,7 @@ def unit_test_2():
     #df = df.dropna()
     #df['Sex'] = df['Sex'].apply(lambda x: 0 if x == 'male' else 1 if x =='female' else 0)
     my_oaxaca = Oaxaca(df=df, grp_col='Gender', response='Rank', grp_groups=['All','Female'],
-           dummy_cols=['Status'],
+           dummy_cols='infer',
            all_factors=['Status'],
                        response_transform_func=(lambda x: x),
                        response_inverse_transform_func=(lambda x: x),verbose=0)
