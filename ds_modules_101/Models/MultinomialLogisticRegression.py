@@ -23,6 +23,7 @@ class MultinomialLogisticRegressionClass:
         self.response = response
         self.sig_level = sig_level
 
+
     def prepare_data(self,df,response):
         y = df[response]
         X = df[list(filter(lambda x: x != response, df.columns))]
@@ -67,12 +68,15 @@ class MultinomialLogisticRegressionClass:
 
         return fig,ax
 
-    def logistic_regression_get_report(self,model,X,y,i=0,verbose=True):
+    def logistic_regression_get_report(self,model,X,y,verbose=False):
 
         preds = model.predict(X)
-        df_classification_report = pd.DataFrame(classification_report(y, preds[i]>0.5, output_dict=True))
+        label_encoder = LabelEncoder()
+        label_encoder.fit(y)
+        pred_labels = label_encoder.inverse_transform(np.argmax(np.array(preds), axis=1))
+        df_classification_report = pd.DataFrame(classification_report(y, pred_labels, output_dict=True))
 
-        df_confusion = pd.DataFrame(confusion_matrix(y,np.argmax(np.array(preds),axis=1)))
+        df_confusion = pd.DataFrame(confusion_matrix(y,pred_labels))
         df_confusion.index = list(map(lambda x: 'True_' + str(x), df_confusion.index))
         df_confusion.columns = list(map(lambda x: 'Predicted_' + str(x), df_confusion.columns))
 
@@ -543,7 +547,7 @@ Test Set accuracy = 0.8'''
     result_actual = my_logistic_regresion_class.logistic_regression_get_report(
         my_logistic_regresion_class.result_with_feature_selection,
         my_logistic_regresion_class.X_with_feature_selection,
-        my_logistic_regresion_class.y_with_feature_selection,i=0,verbose=False)
+        my_logistic_regresion_class.y_with_feature_selection,verbose=False)
 
     result_required = list(map(lambda x: round(x, 2), result_required))
     result_actual = list(map(lambda x: round(x, 2), list(np.array(result_actual).flatten())))
@@ -674,6 +678,19 @@ Test Set accuracy = 0.97'''
 
     result_required = list(map(lambda x: round(x, 2), result_required))
     result_actual = list(map(lambda x: round(x, 2), result_actual))
+
+    assert (result_required == result_actual)
+
+    result_required = [887, 20, 3]
+    result_actual = my_logistic_regresion_class.logistic_regression_get_report(
+                            my_logistic_regresion_class.result,
+                            my_logistic_regresion_class.X,
+                            my_logistic_regresion_class.y)
+
+    result_actual = list(result_actual['Predicted_0'])
+
+    result_required = list(map(lambda x: round(x, 2), result_required))
+    #result_actual = list(map(lambda x: round(x, 2), list(np.array(result_actual).flatten())))
 
     assert (result_required == result_actual)
 
