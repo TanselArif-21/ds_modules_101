@@ -24,9 +24,9 @@ class Oaxaca:
     '''
 
     def __init__(self,df,response,grp_col,grp_groups=None,
-                 dummy_cols = None,
+                 dummy_cols = [],
                 higher_order_dict=dict(),
-                all_factors = None, response_transform_func = None,response_inverse_transform_func = None,
+                all_factors = [], response_transform_func = None,response_inverse_transform_func = None,
                 output_location=None,verbose=0):
         '''
         :param df: the dataframe
@@ -44,7 +44,7 @@ class Oaxaca:
         '''
 
         # saving variables to the object
-        self.df = df.copy()
+        self.df = df[[response,grp_col]+dummy_cols+all_factors].copy()
         self.response = response
         self.grp_col = grp_col
         self.grp_groups = grp_groups
@@ -594,7 +594,7 @@ class Oaxaca:
      
 
 def unit_test_1():
-    print('Unit test 4...')
+    print('Unit test 1...')
     import sys
     import os
     import warnings
@@ -629,6 +629,44 @@ def unit_test_1():
 
     print('Success!')
 
+
+def unit_test_2():
+    print('Unit test 2...')
+    import sys
+    import os
+    import warnings
+
+    np.random.seed(101)
+    #warnings.filterwarnings("ignore")
+
+    warnings.filterwarnings('ignore',
+                            '.*divide by zero.*')
+
+    current_dir = '/'.join(sys.path[0].split('/')[:-1])  # sys.path[0]
+    data_dir = os.path.join(current_dir, 'Data', 'ibd')
+    ibd_csv = os.path.join(data_dir, 'IBD.csv')
+    df = pd.read_csv(ibd_csv)
+    #df = df[['Gender', 'Rank','Status']]
+    #df = df.dropna()
+    #df['Sex'] = df['Sex'].apply(lambda x: 0 if x == 'male' else 1 if x =='female' else 0)
+    my_oaxaca = Oaxaca(df=df, grp_col='Gender', response='Rank', grp_groups=['All','Female'],
+           dummy_cols=['Status'],
+           all_factors=['Status'],
+                       response_transform_func=(lambda x: x),
+                       response_inverse_transform_func=(lambda x: x),verbose=0)
+    my_oaxaca.run_oaxaca_analysis()
+
+    result_required = [468.7401770256098, 3.984140007368431, -59.70088512804106, -113.54010650666291]
+    result_actual = list(my_oaxaca.lin_model_fit_3.params)
+
+    result_required = list(map(lambda x: round(x, 2), result_required))
+    result_actual = list(map(lambda x: round(x, 2), result_actual))
+
+    assert (sorted(result_required) == sorted(result_actual))
+
+    print('Success!')
+
 if __name__ == '__main__':
     unit_test_1()
+    unit_test_2()
 
