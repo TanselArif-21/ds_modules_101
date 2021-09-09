@@ -560,7 +560,7 @@ class Oaxaca:
 
         t1 = df_factor_effects[['Factor','Difference_in_variable']].copy()
         t1.reset_index(drop=True,inplace=True)
-        t1.loc[-1] = ['Pay Gap', -diff_to_explain]  # adding a row
+        t1.loc[-1] = ['Gap', -diff_to_explain]  # adding a row
         t1.index = t1.index + 1  # shifting index
         t1.sort_index(inplace=True)
 
