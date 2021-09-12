@@ -12,7 +12,7 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.preprocessing import LabelEncoder
 
 class LogisticRegressionClass:
-    def __init__(self,df,response,sig_level=0.05):
+    def __init__(self,df,response,sig_level=0.05,max_iter=500):
         '''
         :param df: a dataframe
         :param response: a string. This must be an existing column in df
@@ -22,6 +22,7 @@ class LogisticRegressionClass:
         self.df = df.copy()
         self.response = response
         self.sig_level = sig_level
+        self.max_iter=max_iter
 
     def prepare_data(self,df,response):
         y = df[response]
@@ -42,7 +43,7 @@ class LogisticRegressionClass:
         return True
 
     def log_reg_diagnostic_performance(self,X,y):
-        cvs = cross_validate(LogisticRegression(), X, y, cv=5,
+        cvs = cross_validate(LogisticRegression(max_iter=self.max_iter), X, y, cv=5,
                              scoring=['accuracy', 'f1', 'precision', 'recall', 'roc_auc'])
         s = """Performance (0 is negative 1 is positive)\n5-Fold Cross Validation Results:\nTest Set accuracy = {}\nf1 = {}\nprecision = {}\nrecall = {}\nauc = {}""".format(
             round(cvs['test_accuracy'].mean(), 2), round(cvs['test_f1'].mean(), 2),
@@ -164,7 +165,7 @@ class LogisticRegressionClass:
 
         model = sm.Logit(y, X)
 
-        result = model.fit(disp=0)
+        result = model.fit(disp=0,maxiter=self.max_iter)
 
         self.basic_result = result
         self.basic_model = model
@@ -328,7 +329,7 @@ def unit_test_1():
     import warnings
 
     np.random.seed(101)
-    warnings.filterwarnings("ignore")
+    #warnings.filterwarnings("ignore")
 
     current_dir = '/'.join(sys.path[0].split('/')[:-1])  # sys.path[0]
     data_dir = os.path.join(current_dir, 'Data', 'titanic')
@@ -507,7 +508,7 @@ def unit_test_4():
     import warnings
 
     np.random.seed(101)
-    warnings.filterwarnings("ignore")
+    #warnings.filterwarnings("ignore")
 
     current_dir = '/'.join(sys.path[0].split('/')[:-1])  # sys.path[0]
     data_dir = os.path.join(current_dir, 'Data', 'titanic')
