@@ -23,6 +23,8 @@ class LogisticRegressionClass:
         self.response = response
         self.sig_level = sig_level
         self.max_iter=max_iter
+        self.warnings = ''
+        self.error_message = ''
 
     def prepare_data(self,df,response):
         y = df[response]
@@ -33,10 +35,12 @@ class LogisticRegressionClass:
 
     def logistic_regression_utility_check_response(self,series):
         if (len(series.unique()) > 2):
+            self.error_message = 'The response variable has more than 2 categories and is not suitable for logistic regression'
             print('The response variable has more than 2 categories and is not suitable for logistic regression')
             return False
 
         if (not is_numeric_dtype(series)):
+            self.error_message = self.error_message + '\n' + 'The response variable should be binary 0 and 1 and numeric type (i.e. int)'
             print('The response variable should be binary 0 and 1 and numeric type (i.e. int)')
             return False
 
@@ -176,17 +180,19 @@ class LogisticRegressionClass:
 
 
     def log_reg(self):
-        if not self.logistic_regression_utility_check_response(self.df[self.response]):
-            return None
 
         df1 = self.df[~self.df.isna().any(axis=1)].copy()
 
         if len(df1) < len(self.df):
-            warnings.warn(
-                'There are NaNs in the dataset. After removing NaNs, the rows reduce from {} to {}'.format(len(self.df),
-                                                                                                           len(df1)))
-            print('There are NaNs in the dataset. After removing NaNs, the rows reduce from {} to {}'.format(len(self.df),
-                                                                                                           len(df1)))
+            warning_message = 'There are NaNs in the dataset. After removing NaNs, the rows reduce from {} to {}'.format(len(self.df),
+                                                                                                           len(df1))
+            warnings.warn(warning_message)
+            print(warning_message)
+
+            self.warnings = self.warnings + '\n' + warning_message
+
+        if not self.logistic_regression_utility_check_response(df1[self.response]):
+            return None
 
         df1 = self.prepare_categories(df1,self.response,drop=True)
 
@@ -206,12 +212,13 @@ class LogisticRegressionClass:
 
         # show a warning to let the user know of the droppped nans
         if len(df1) < len(self.df):
-            warnings.warn(
-                'There are NaNs in the dataset. After removing NaNs, the rows reduce from {} to {}'.format(len(self.df),
-                                                                                                           len(df1)))
-            print(
-                'There are NaNs in the dataset. After removing NaNs, the rows reduce from {} to {}'.format(len(self.df),
-                                                                                                           len(df1)))
+            warning_message = 'There are NaNs in the dataset. After removing NaNs, the rows reduce from {} to {}'.format(
+                len(self.df),
+                len(df1))
+            warnings.warn(warning_message)
+            print(warning_message)
+
+            self.warnings = self.warnings + '\n' + warning_message
 
         # check that the response is in the correct format to perform logistic regression
         if not self.logistic_regression_utility_check_response(df1[self.response]):
@@ -572,8 +579,38 @@ auc = 0.85'''
 
     print('Success!')
 
+def unit_test_5():
+    print('Unit test 5...')
+    import sys
+    import os
+    import warnings
+
+    np.random.seed(101)
+    #warnings.filterwarnings("ignore")
+
+    current_dir = '/'.join(sys.path[0].split('/')[:-1])  # sys.path[0]
+    data_dir = os.path.join(current_dir, 'Data', 'titanic')
+    titanic_csv = os.path.join(data_dir, 'titanic.csv')
+    df = pd.read_csv(titanic_csv)
+    df = df[['Survived', 'Pclass', 'Sex', 'Age', 'SibSp','Parch', 'Fare']]
+    df.loc[1,'Survived'] = np.nan
+    my_logistic_regresion_class = LogisticRegressionClass(df,'Survived',sig_level=0.05)
+    my_logistic_regresion_class.log_reg()
+
+    result_required = [5.38, -1.24, -0.04, -0.38, -0.06, 0.0, -2.63]
+    result_actual = list(my_logistic_regresion_class.result.params)
+
+    result_required = list(map(lambda x: round(x, 2), result_required))
+    result_actual = list(map(lambda x: round(x, 2), result_actual))
+
+    assert (sorted(result_required) == sorted(result_actual))
+
+
+    print('Success!')
+
 if __name__ == '__main__':
     unit_test_1()
     unit_test_2()
     unit_test_3()
     unit_test_4()
+    unit_test_5()
