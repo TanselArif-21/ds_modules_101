@@ -12,10 +12,13 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.preprocessing import LabelEncoder
 
 class LogisticRegressionClass:
-    def __init__(self,df,response,sig_level=0.05,max_iter=500):
+    def __init__(self,df,response,sig_level=0.05,max_iter=500,cols_to_keep_static=[]):
         '''
         :param df: a dataframe
         :param response: a string. This must be an existing column in df
+        :param sig_level: a float. The significance level the forward selection will use
+        :param max_iter: an integer. The maximum iterations the solvers will use to try to converge
+        :param cols_to_keep_static: a list. Used in forward selection to not omit these columns
         '''
 
         # attach attributes to the object
@@ -25,6 +28,7 @@ class LogisticRegressionClass:
         self.max_iter=max_iter
         self.warnings = ''
         self.error_message = ''
+        self.cols_to_keep_static = cols_to_keep_static
 
     def prepare_data(self,df,response):
         y = df[response]
@@ -98,8 +102,15 @@ class LogisticRegressionClass:
 
     def prepare_categories(self,df, response, drop=False):
         cat_cols = list(filter(lambda x: not is_numeric_dtype(df[x]), df.columns))
-        cat_cols = list(set(cat_cols) - {response})
+        cat_cols = list(set(cat_cols) - {response} - set(self.cols_to_keep_static))
         df = pd.get_dummies(df, columns=cat_cols, drop_first=drop)
+        df = pd.get_dummies(df, columns=self.cols_to_keep_static, drop_first=True)
+
+        self.cols_to_keep_static_dummified = []
+        for col in self.cols_to_keep_static:
+            for col_dummy in df.columns:
+                if col in col_dummy:
+                    self.cols_to_keep_static_dummified.append(col_dummy)
 
         return df
 
@@ -238,10 +249,10 @@ class LogisticRegressionClass:
                     len(df1.columns), len(df1)))
 
         # the initial list of features
-        remaining = list(set(df1.columns) - {self.response})
+        remaining = list(set(df1.columns) - {self.response} - set(self.cols_to_keep_static_dummified))
 
         # this holds the tried and successful feature set
-        full_feature_set = []
+        full_feature_set = self.cols_to_keep_static_dummified
 
         # get the first logistic regression output for only the constant/base model
         first_result = self.log_reg_basic(df1[[self.response]])
@@ -608,9 +619,41 @@ def unit_test_5():
 
     print('Success!')
 
+def unit_test_6():
+    print('Unit test 6...')
+    import sys
+    import os
+    import warnings
+
+    np.random.seed(101)
+    #warnings.filterwarnings("ignore")
+
+    current_dir = '/'.join(sys.path[0].split('/')[:-1])  # sys.path[0]
+    data_dir = os.path.join(current_dir, 'Data', 'titanic')
+    titanic_csv = os.path.join(data_dir, 'titanic.csv')
+    df = pd.read_csv(titanic_csv)
+    df = df[['Survived', 'Pclass', 'Sex', 'Age', 'SibSp','Parch', 'Fare']]
+    df.loc[1,'Survived'] = np.nan
+    for col in df.columns:
+        if col in ['Pclass','Parch']:
+            df[col] = df[col].astype('str')
+    my_logistic_regresion_class = LogisticRegressionClass(df,'Survived',sig_level=0.05,cols_to_keep_static=['Pclass'])
+    my_logistic_regresion_class.log_reg_with_feature_selection(verbose=False)
+
+    result_required = [1.7, -1.41, -2.65, 2.62, -0.04, -0.38]
+    result_actual = list(my_logistic_regresion_class.result_with_feature_selection.params)
+
+    result_required = list(map(lambda x: round(x, 2), result_required))
+    result_actual = list(map(lambda x: round(x, 2), result_actual))
+
+    assert (sorted(result_required) == sorted(result_actual))
+
+    print('Success!')
+
 if __name__ == '__main__':
     unit_test_1()
     unit_test_2()
     unit_test_3()
     unit_test_4()
     unit_test_5()
+    unit_test_6()
