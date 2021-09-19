@@ -117,13 +117,16 @@ class LogisticRegressionClass:
 
         return df
 
-    def get_interpretation(self,result,feature_list):
+    def get_interpretation(self,result,feature_list,df=None):
         '''
         Given a trained model, calculate the average probabilities due to feature changes
         '''
 
         # take a copy of the original df and prepare the dataset
-        df_temp = self.df.copy()
+        if df is None:
+            df = self.df.copy()
+
+        df_temp = df.copy()
         df_temp = self.prepare_categories(df_temp, self.response, drop=False)
         X, y = self.prepare_data(df_temp,self.response)
 
@@ -137,13 +140,13 @@ class LogisticRegressionClass:
         probability_dict['base'] = base_probability
 
         # for each column in the original df
-        for col in self.df.columns:
+        for col in df.columns:
             # for each column in the result's feature list
             for col2 in feature_list:
                 # check if this feature was dummified from this column
                 if col + '_' in col2:
                     # if this feature was dummified from this column then update this column to be this feature value
-                    df_temp = self.df.copy()
+                    df_temp = df.copy()
                     df_temp[col] = col2.replace(col + '_', '')
                     df_temp = self.prepare_categories(df_temp, self.response, drop=False)
                     X, y = self.prepare_data(df_temp, self.response)
@@ -158,7 +161,7 @@ class LogisticRegressionClass:
                     probability_dict[col2] = probability
                 elif col == col2:
                     # if this column was not dummified then it is numeric so add 1 to it
-                    df_temp = self.df.copy()
+                    df_temp = df.copy()
                     df_temp[col] = df_temp[col] + 1
                     df_temp = self.prepare_categories(df_temp, self.response, drop=False)
                     X, y = self.prepare_data(df_temp, self.response)
@@ -367,7 +370,7 @@ class LogisticRegressionClass:
 
         return final_result
 
-    def log_reg_one_at_a_time(self,with_feature_selection=False):
+    def log_reg_one_at_a_time(self,with_feature_selection=False,get_interpretability=False):
 
         dic = dict()
         df1 = self.df.copy()
@@ -376,13 +379,26 @@ class LogisticRegressionClass:
         for this_col_to_try in self.cols_to_try_individually:
             if with_feature_selection:
                 result = self.log_reg_with_feature_selection(df=df1[self.cols_to_keep_static + [self.response, this_col_to_try]])
+                if get_interpretability:
+                    self.get_interpretation(self.result_with_feature_selection,self.final_feature_set
+                                            ,df=df1[self.cols_to_keep_static + [self.response, this_col_to_try]])
             else:
                 result = self.log_reg(df=df1[self.cols_to_keep_static + [self.response,this_col_to_try]])
+                if get_interpretability:
+                    self.get_interpretation(self.result, self.X.columns
+                                            , df=df1[self.cols_to_keep_static + [self.response, this_col_to_try]])
             for col in list(filter(lambda x: this_col_to_try in x,result.params.index)):
-                dic[col] = [result.params[col],result.pvalues[col]]
+                if get_interpretability:
+                    dic[col] = [result.params[col],result.pvalues[col],self.feature_interpretability_df['Probability'][col],
+                                self.feature_interpretability_df['Probability']['base']]
+                else:
+                    dic[col] = [result.params[col], result.pvalues[col]]
 
         df_one_at_a_time = pd.DataFrame(dic).T
-        df_one_at_a_time.columns = ['Coefficient','Pvalue']
+        if get_interpretability:
+            df_one_at_a_time.columns = ['Coefficient','Pvalue','Controlled Probability','Base Probability']
+        else:
+            df_one_at_a_time.columns = ['Coefficient','Pvalue']
         self.df_one_at_a_time = df_one_at_a_time
         return df_one_at_a_time
 
@@ -762,12 +778,78 @@ def unit_test_8():
 
     print('Success!')
 
+def unit_test_9():
+    print('Unit test 9...')
+    import sys
+    import os
+    import warnings
+
+    np.random.seed(101)
+    #warnings.filterwarnings("ignore")
+
+    current_dir = '/'.join(sys.path[0].split('/')[:-1])  # sys.path[0]
+    data_dir = os.path.join(current_dir, 'Data', 'titanic')
+    titanic_csv = os.path.join(data_dir, 'titanic.csv')
+    df = pd.read_csv(titanic_csv)
+    df = df[['Survived', 'Pclass', 'Sex', 'Age', 'SibSp','Parch', 'Fare']]
+    for col in df.columns:
+        if col in ['Pclass','Parch']:
+            df[col] = df[col].astype('str')
+    my_logistic_regresion_class = LogisticRegressionClass(df,'Survived',sig_level=0.05,cols_to_keep_static=['Pclass'],
+                                                          cols_to_try_individually=['Age','Fare'],
+                                                          max_iter=1000)
+    my_logistic_regresion_class.log_reg_one_at_a_time(with_feature_selection=False,get_interpretability=True)
+
+    result_required = [0.4, 0.39]
+    result_actual = list(my_logistic_regresion_class.df_one_at_a_time['Controlled Probability'])
+
+    result_required = list(map(lambda x: round(x, 2), result_required))
+    result_actual = list(map(lambda x: round(x, 2), result_actual))
+
+    assert (sorted(result_required) == sorted(result_actual))
+
+    print('Success!')
+
+def unit_test_10():
+    print('Unit test 10...')
+    import sys
+    import os
+    import warnings
+
+    np.random.seed(101)
+    #warnings.filterwarnings("ignore")
+
+    current_dir = '/'.join(sys.path[0].split('/')[:-1])  # sys.path[0]
+    data_dir = os.path.join(current_dir, 'Data', 'titanic')
+    titanic_csv = os.path.join(data_dir, 'titanic.csv')
+    df = pd.read_csv(titanic_csv)
+    df = df[['Survived', 'Pclass', 'Sex', 'Age', 'SibSp','Parch', 'Fare']]
+    for col in df.columns:
+        if col in ['Pclass','Parch']:
+            df[col] = df[col].astype('str')
+    my_logistic_regresion_class = LogisticRegressionClass(df,'Survived',sig_level=0.05,cols_to_keep_static=['Pclass'],
+                                                          cols_to_try_individually=['Age','Fare','Parch','Sex'],
+                                                          max_iter=1000)
+    my_logistic_regresion_class.log_reg_one_at_a_time(with_feature_selection=True,get_interpretability=True)
+
+    result_required = [0.4, 0.39, 0.35, 0.72]
+    result_actual = list(my_logistic_regresion_class.df_one_at_a_time['Controlled Probability'])
+
+    result_required = list(map(lambda x: round(x, 2), result_required))
+    result_actual = list(map(lambda x: round(x, 2), result_actual))
+
+    assert (sorted(result_required) == sorted(result_actual))
+
+    print('Success!')
+
 if __name__ == '__main__':
-    # unit_test_1()
-    # unit_test_2()
-    # unit_test_3()
-    # unit_test_4()
-    # unit_test_5()
-    # unit_test_6()
-    # unit_test_7()
+    unit_test_1()
+    unit_test_2()
+    unit_test_3()
+    unit_test_4()
+    unit_test_5()
+    unit_test_6()
+    unit_test_7()
     unit_test_8()
+    unit_test_9()
+    unit_test_10()
