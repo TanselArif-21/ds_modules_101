@@ -12,13 +12,15 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.preprocessing import LabelEncoder
 
 class LogisticRegressionClass:
-    def __init__(self,df,response,sig_level=0.05,max_iter=500,cols_to_keep_static=[]):
+    def __init__(self,df,response,sig_level=0.05,max_iter=500,cols_to_keep_static=[],cols_to_try_individually=[]):
         '''
         :param df: a dataframe
         :param response: a string. This must be an existing column in df
         :param sig_level: a float. The significance level the forward selection will use
         :param max_iter: an integer. The maximum iterations the solvers will use to try to converge
         :param cols_to_keep_static: a list. Used in forward selection to not omit these columns
+        :param cols_to_try_individually: a list. The columns to test in a regression one at a time to identify which
+            one has the greatest relationship with the response controlled for the cols_to_keep_static
         '''
 
         # attach attributes to the object
@@ -29,6 +31,7 @@ class LogisticRegressionClass:
         self.warnings = ''
         self.error_message = ''
         self.cols_to_keep_static = cols_to_keep_static
+        self.cols_to_try_individually = cols_to_try_individually
 
     def prepare_data(self,df,response):
         y = df[response]
@@ -190,17 +193,28 @@ class LogisticRegressionClass:
         return result
 
 
-    def log_reg(self):
+    def log_reg(self,df=None):
+        if df is None:
+            df1 = self.df[~self.df.isna().any(axis=1)].copy()
 
-        df1 = self.df[~self.df.isna().any(axis=1)].copy()
+            if len(df1) < len(self.df):
+                warning_message = 'There are NaNs in the dataset. After removing NaNs, the rows reduce from {} to {}'.format(len(self.df),
+                                                                                                               len(df1))
+                warnings.warn(warning_message)
+                print(warning_message)
 
-        if len(df1) < len(self.df):
-            warning_message = 'There are NaNs in the dataset. After removing NaNs, the rows reduce from {} to {}'.format(len(self.df),
-                                                                                                           len(df1))
-            warnings.warn(warning_message)
-            print(warning_message)
+                self.warnings = self.warnings + '\n' + warning_message
+        else:
+            df1 = df[~df.isna().any(axis=1)].copy()
 
-            self.warnings = self.warnings + '\n' + warning_message
+            if len(df1) < len(df):
+                warning_message = 'There are NaNs in the dataset. After removing NaNs, the rows reduce from {} to {}'.format(
+                    len(df),
+                    len(df1))
+                warnings.warn(warning_message)
+                print(warning_message)
+
+                self.warnings = self.warnings + '\n' + warning_message
 
         if not self.logistic_regression_utility_check_response(df1[self.response]):
             return None
@@ -214,22 +228,36 @@ class LogisticRegressionClass:
 
         return result
 
-    def log_reg_with_feature_selection(self,run_for=0,verbose=True):
+    def log_reg_with_feature_selection(self,df=None,run_for=0,verbose=True):
         # start the timer in case the is a time limit specified
         start_time = time.time()
 
-        # get rid of nans. There should be no nans. Imputation should be performed prior to this point
-        df1 = self.df[~self.df.isna().any(axis=1)].copy()
+        if df is None:
+            # get rid of nans. There should be no nans. Imputation should be performed prior to this point
+            df1 = self.df[~self.df.isna().any(axis=1)].copy()
 
-        # show a warning to let the user know of the droppped nans
-        if len(df1) < len(self.df):
-            warning_message = 'There are NaNs in the dataset. After removing NaNs, the rows reduce from {} to {}'.format(
-                len(self.df),
-                len(df1))
-            warnings.warn(warning_message)
-            print(warning_message)
+            # show a warning to let the user know of the droppped nans
+            if len(df1) < len(self.df):
+                warning_message = 'There are NaNs in the dataset. After removing NaNs, the rows reduce from {} to {}'.format(
+                    len(self.df),
+                    len(df1))
+                warnings.warn(warning_message)
+                print(warning_message)
 
-            self.warnings = self.warnings + '\n' + warning_message
+                self.warnings = self.warnings + '\n' + warning_message
+        else:
+            # get rid of nans. There should be no nans. Imputation should be performed prior to this point
+            df1 = df[~df.isna().any(axis=1)].copy()
+
+            # show a warning to let the user know of the droppped nans
+            if len(df1) < len(df):
+                warning_message = 'There are NaNs in the dataset. After removing NaNs, the rows reduce from {} to {}'.format(
+                    len(df),
+                    len(df1))
+                warnings.warn(warning_message)
+                print(warning_message)
+
+                self.warnings = self.warnings + '\n' + warning_message
 
         # check that the response is in the correct format to perform logistic regression
         if not self.logistic_regression_utility_check_response(df1[self.response]):
@@ -287,7 +315,7 @@ class LogisticRegressionClass:
                 this_feature_set = full_feature_set + [col]
                 try:
                     result = self.log_reg_basic(df1[this_feature_set + [self.response]])
-                except:
+                except Exception as e:
                     remaining.remove(col)
                     continue
 
@@ -338,6 +366,25 @@ class LogisticRegressionClass:
         self.result_with_feature_selection = final_result
 
         return final_result
+
+    def log_reg_one_at_a_time(self,with_feature_selection=False):
+
+        dic = dict()
+        df1 = self.df.copy()
+        df1 = df1[[self.response]+self.cols_to_keep_static + self.cols_to_try_individually].copy()
+
+        for this_col_to_try in self.cols_to_try_individually:
+            if with_feature_selection:
+                result = self.log_reg_with_feature_selection(df=df1[self.cols_to_keep_static + [self.response, this_col_to_try]])
+            else:
+                result = self.log_reg(df=df1[self.cols_to_keep_static + [self.response,this_col_to_try]])
+            for col in list(filter(lambda x: this_col_to_try in x,result.params.index)):
+                dic[col] = [result.params[col],result.pvalues[col]]
+
+        df_one_at_a_time = pd.DataFrame(dic).T
+        df_one_at_a_time.columns = ['Coefficient','Pvalue']
+        self.df_one_at_a_time = df_one_at_a_time
+        return df_one_at_a_time
 
 
 def unit_test_1():
@@ -650,10 +697,77 @@ def unit_test_6():
 
     print('Success!')
 
+
+def unit_test_7():
+    print('Unit test 7...')
+    import sys
+    import os
+    import warnings
+
+    np.random.seed(101)
+    #warnings.filterwarnings("ignore")
+
+    current_dir = '/'.join(sys.path[0].split('/')[:-1])  # sys.path[0]
+    data_dir = os.path.join(current_dir, 'Data', 'titanic')
+    titanic_csv = os.path.join(data_dir, 'titanic.csv')
+    df = pd.read_csv(titanic_csv)
+    df = df[['Survived', 'Pclass', 'Sex', 'Age', 'SibSp','Parch', 'Fare']]
+    for col in df.columns:
+        if col in ['Pclass','Parch']:
+            df[col] = df[col].astype('str')
+    my_logistic_regresion_class = LogisticRegressionClass(df,'Survived',sig_level=0.05,cols_to_keep_static=['Pclass'],
+                                                          cols_to_try_individually=['Parch','Sex','Age','Fare'],
+                                                          max_iter=1000)
+    my_logistic_regresion_class.log_reg_one_at_a_time(with_feature_selection=True)
+
+    result_required = [-0.73, 2.64, -0.04, 0.01]
+    result_actual = list(my_logistic_regresion_class.df_one_at_a_time['Coefficient'])
+
+    result_required = list(map(lambda x: round(x, 2), result_required))
+    result_actual = list(map(lambda x: round(x, 2), result_actual))
+
+    assert (sorted(result_required) == sorted(result_actual))
+
+    print('Success!')
+
+def unit_test_8():
+    print('Unit test 8...')
+    import sys
+    import os
+    import warnings
+
+    np.random.seed(101)
+    #warnings.filterwarnings("ignore")
+
+    current_dir = '/'.join(sys.path[0].split('/')[:-1])  # sys.path[0]
+    data_dir = os.path.join(current_dir, 'Data', 'titanic')
+    titanic_csv = os.path.join(data_dir, 'titanic.csv')
+    df = pd.read_csv(titanic_csv)
+    df = df[['Survived', 'Pclass', 'Sex', 'Age', 'SibSp','Parch', 'Fare']]
+    for col in df.columns:
+        if col in ['Pclass','Parch']:
+            df[col] = df[col].astype('str')
+    my_logistic_regresion_class = LogisticRegressionClass(df,'Survived',sig_level=0.05,cols_to_keep_static=['Pclass'],
+                                                          cols_to_try_individually=['Age','Fare'],
+                                                          max_iter=1000)
+    my_logistic_regresion_class.log_reg_one_at_a_time(with_feature_selection=False)
+
+    result_required = [-0.04, 0.01]
+    result_actual = list(my_logistic_regresion_class.df_one_at_a_time['Coefficient'])
+
+    result_required = list(map(lambda x: round(x, 2), result_required))
+    result_actual = list(map(lambda x: round(x, 2), result_actual))
+
+    assert (sorted(result_required) == sorted(result_actual))
+
+    print('Success!')
+
 if __name__ == '__main__':
-    unit_test_1()
-    unit_test_2()
-    unit_test_3()
-    unit_test_4()
-    unit_test_5()
-    unit_test_6()
+    # unit_test_1()
+    # unit_test_2()
+    # unit_test_3()
+    # unit_test_4()
+    # unit_test_5()
+    # unit_test_6()
+    # unit_test_7()
+    unit_test_8()
