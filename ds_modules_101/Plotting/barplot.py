@@ -108,3 +108,17 @@ def stacked_bar_chart(df_in,x_col,y_col,category_col = None,hex_numbers = None,f
     fig.tight_layout()
     
     return fig
+
+def show_values_on_bars(axs,fontsize=20,color='black'):
+    def _show_on_single_plot(ax):
+        for p in ax.patches:
+            _x = p.get_x() + p.get_width() / 2
+            _y = p.get_y() + p.get_height() + (p.get_height()*0.01)
+            value = '{:2f}'.format(p.get_height())
+            ax.text(_x,_y,value,ha="center",fontsize=fontsize,color=color)
+
+        if isinstance(axs,np.ndarray):
+            for idx, ax in np.ndenumerate(axs):
+                _show_on_single_plot(ax)
+        else:
+            _show_on_single_plot(axs)

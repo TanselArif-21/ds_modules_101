@@ -134,6 +134,32 @@ class LogisticRegressionClass:
         if 'const' not in full_feature_list:
             full_feature_list = ['const'] + full_feature_list
 
+        # comparative uplift section
+        comparative_dict = dict()
+        for col1 in df.columns:
+            for col2 in full_feature_list:
+                # if this feature was dummified
+                if col1 + '_' in col2:
+                    t = X[full_feature_list].copy()
+                    # First get prediction with 0
+                    t[col2] = 0
+                    comparative_dict[col2] = [result.predict(t).mean()]
+                    # Then get prediction with 1
+                    t[col2] = 1
+                    comparative_dict[col2].append(result.predict(t).mean())
+                elif col1 == col2:
+                    t = X[full_feature_list].copy()
+                    # first get prediction with average
+                    t[col2] = t[col2].mean()
+                    comparative_dict[col2] = [result.predict(t).mean()]
+                    # then get prediction with +1
+                    t[col2] = t[col2] + 1
+                    comparative_dict[col2].append(result.predict(t).mean())
+
+        feature_interpretability_comparative_df = pd.DataFrame(comparative_dict).T
+        feature_interpretability_comparative_df.columns = ['Prediction_average_or_without','Prediction_add1_or_with']
+        self.feature_interpretability_comparative_df = feature_interpretability_comparative_df
+
         # get a base probability (this is just the average probability)
         base_probability = result.predict(X[full_feature_list]).mean()
         probability_dict = dict()
@@ -458,6 +484,15 @@ auc = 0.85'''
 
     assert (result_required == result_actual)
 
+    result_required = [0.22395117322839098, 0.3558311002657131, 0.3977261128754439, 0.4027792667251947,
+                       0.4068054774641371, 0.8543626808843827]
+    result_actual = sorted(list(my_logistic_regresion_class.feature_interpretability_comparative_df['Prediction_add1_or_with']))
+
+    result_required = list(map(lambda x: round(x, 2), result_required))
+    result_actual = list(map(lambda x: round(x, 2), result_actual))
+
+    assert (result_required == result_actual)
+
     print('Success!')
 
 
@@ -573,6 +608,15 @@ auc = 0.85'''
     result_actual = list(my_logistic_regresion_class.get_interpretation(my_logistic_regresion_class.result,
                                                                         my_logistic_regresion_class.X.columns)[
                              'Probability'])
+
+    result_required = list(map(lambda x: round(x, 2), result_required))
+    result_actual = list(map(lambda x: round(x, 2), result_actual))
+
+    assert (result_required == result_actual)
+
+    result_required = [0.22395117322839098, 0.23089275089703268, 0.35583110026571313,
+                       0.3977261128754439, 0.4027792667251947, 0.4068054774641371]
+    result_actual = sorted(list(my_logistic_regresion_class.feature_interpretability_comparative_df['Prediction_add1_or_with']))
 
     result_required = list(map(lambda x: round(x, 2), result_required))
     result_actual = list(map(lambda x: round(x, 2), result_actual))

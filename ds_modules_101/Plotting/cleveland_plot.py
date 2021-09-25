@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+import os,sys
 
 
 def cleveland_plot(df,group_by,grp_col,val_col,groups,sortbycol=None,min_group_size=20,height = 10,width=10,number_of_splits = 5,
@@ -87,3 +88,14 @@ def cleveland_plot(df,group_by,grp_col,val_col,groups,sortbycol=None,min_group_s
     #plt.show()
     
     return fig,out_t
+
+if __name__ == '__main__':
+    current_dir = '/'.join(sys.path[0].split('/')[:-1])  # sys.path[0]
+    data_dir = os.path.join(current_dir, 'Data', 'titanic')
+    titanic_csv = os.path.join(data_dir, 'titanic.csv')
+    df = pd.read_csv(titanic_csv)
+
+    fig,_ = cleveland_plot(df=df,group_by='Pclass',grp_col='Sex',val_col='Fare',groups=['male','female'],sortbycol=None,min_group_size=20,height = 10,width=10,number_of_splits = 5,
+                        legend_x = 1.05,legend_y = 0,legend_x2 = 1.05,legend_y2 =1,labelsize = 1,
+                        xlim = None, ylim = None)
+    plt.show()
