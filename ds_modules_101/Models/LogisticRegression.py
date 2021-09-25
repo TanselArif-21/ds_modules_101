@@ -117,10 +117,22 @@ class LogisticRegressionClass:
 
         return df
 
-    def get_interpretation(self,result,feature_list,df=None):
+    def get_interpretation(self,result=None,feature_list=None,df=None):
         '''
         Given a trained model, calculate the average probabilities due to feature changes
         '''
+
+        if (result is None) or (feature_list is None):
+            try:
+                feature_list = self.X_with_feature_selection.columns
+                result = self.result_with_feature_selection
+            except:
+                feature_list = self.X.columns
+                try:
+                    result = self.result
+                except:
+                    result = self.basic_result
+
 
         # take a copy of the original df and prepare the dataset
         if df is None:
@@ -477,7 +489,7 @@ auc = 0.85'''
     assert (result_required == result_actual)
 
     result_required = [0.4061624649859944, 0.24581360407372246, 0.795820946281563, 0.3999162261394402, 0.3539768140703711, 0.39737068898845873, 0.4064703482674913]
-    result_actual = list(my_logistic_regresion_class.get_interpretation(my_logistic_regresion_class.basic_result,my_logistic_regresion_class.X.columns)['Probability'])
+    result_actual = list(my_logistic_regresion_class.get_interpretation()['Probability'])
 
     result_required = list(map(lambda x: round(x, 2), result_required))
     result_actual = list(map(lambda x: round(x, 2), result_actual))
@@ -546,9 +558,7 @@ auc = 0.85'''
 
     result_required = [0.4061624649859944, 0.24581360407372246, 0.795820946281563, 0.3999162261394402,
                        0.3539768140703711, 0.39737068898845873, 0.4064703482674913]
-    result_actual = list(my_logistic_regresion_class.get_interpretation(my_logistic_regresion_class.basic_result,
-                                                                        my_logistic_regresion_class.X.columns)[
-                             'Probability'])
+    result_actual = list(my_logistic_regresion_class.get_interpretation()['Probability'])
 
     result_required = list(map(lambda x: round(x, 2), result_required))
     result_actual = list(map(lambda x: round(x, 2), result_actual))
@@ -605,9 +615,7 @@ auc = 0.85'''
     assert (result_required == result_actual)
 
     result_required = [0.40616246498599445, 0.24581360407372244, 0.23089275089703268, 0.3999162261394402, 0.3539768140703711, 0.39737068898845873, 0.4064703482674913]
-    result_actual = list(my_logistic_regresion_class.get_interpretation(my_logistic_regresion_class.result,
-                                                                        my_logistic_regresion_class.X.columns)[
-                             'Probability'])
+    result_actual = list(my_logistic_regresion_class.get_interpretation()['Probability'])
 
     result_required = list(map(lambda x: round(x, 2), result_required))
     result_actual = list(map(lambda x: round(x, 2), result_actual))
@@ -674,9 +682,7 @@ auc = 0.85'''
     assert (result_required == result_actual)
 
     result_required = [0.4061624649859944, 0.236473141666754, 0.7141621577909735, 0.3998399415589254, 0.3537524130019424]
-    result_actual = list(my_logistic_regresion_class.get_interpretation(my_logistic_regresion_class.result_with_feature_selection,
-                                                                        my_logistic_regresion_class.X_with_feature_selection.columns)[
-                             'Probability'])
+    result_actual = list(my_logistic_regresion_class.get_interpretation()['Probability'])
 
     result_required = list(map(lambda x: round(x, 2), result_required))
     result_actual = list(map(lambda x: round(x, 2), result_actual))
