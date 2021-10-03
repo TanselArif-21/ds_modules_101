@@ -117,8 +117,8 @@ def show_values_on_bars(axs,fontsize=20,color='black'):
             value = '{:2f}'.format(p.get_height())
             ax.text(_x,_y,value,ha="center",fontsize=fontsize,color=color)
 
-        if isinstance(axs,np.ndarray):
-            for idx, ax in np.ndenumerate(axs):
-                _show_on_single_plot(ax)
-        else:
-            _show_on_single_plot(axs)
+    if isinstance(axs,np.ndarray):
+        for idx, ax in np.ndenumerate(axs):
+            _show_on_single_plot(ax)
+    else:
+        _show_on_single_plot(axs)
