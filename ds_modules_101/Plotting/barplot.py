@@ -109,12 +109,15 @@ def stacked_bar_chart(df_in,x_col,y_col,category_col = None,hex_numbers = None,f
     
     return fig
 
-def show_values_on_bars(axs,fontsize=20,color='black'):
+def show_values_on_bars(axs,fontsize=20,color='black',decimal_places = 2):
     def _show_on_single_plot(ax):
         for p in ax.patches:
             _x = p.get_x() + p.get_width() / 2
             _y = p.get_y() + p.get_height() + (p.get_height()*0.01)
-            value = '{:2f}'.format(p.get_height())
+            v = round(p.get_height(),decimal_places)
+            if decimal_places == 0:
+                v = int(v)
+            value = '{}'.format(v)
             ax.text(_x,_y,value,ha="center",fontsize=fontsize,color=color)
 
     if isinstance(axs,np.ndarray):
@@ -122,3 +125,38 @@ def show_values_on_bars(axs,fontsize=20,color='black'):
             _show_on_single_plot(ax)
     else:
         _show_on_single_plot(axs)
+
+def show_values_on_bars_h(axs,fontsize=20,color='black',decimal_places = 2):
+    def _show_on_single_plot(ax):
+        for p in ax.patches:
+            _y = p.get_y()+ (p.get_height()/2)
+            _x = p.get_x()+ p.get_width()*1.02
+            v = round(p.get_width(),decimal_places)
+            if decimal_places == 0:
+                v = int(v)
+            value = '{}'.format(v)
+            ax.text(_x,_y,value,ha="center",va='center',fontsize=fontsize,color=color,rotation=-90)
+
+    if isinstance(axs,np.ndarray):
+        for idx, ax in np.ndenumerate(axs):
+            _show_on_single_plot(ax)
+    else:
+        _show_on_single_plot(axs)
+
+if __name__ == '__main__':
+    a = pd.Series(np.random.randint(low=0,high=100,size=100))
+    b = pd.Series(['Group1','Group2']*50)
+    df = pd.DataFrame([a,b]).T
+    df.columns = ['Value','Column']
+    fig = plt.figure(figsize=(10,10))
+    ax = fig.add_subplot(1,1,1)
+    sns.barplot(data=df,x='Column',y='Value',ax=ax)
+    show_values_on_bars(ax,decimal_places=0)
+    fig.show()
+
+    fig = plt.figure(figsize=(10, 10))
+    ax = fig.add_subplot(1, 1, 1)
+    sns.barplot(data=df, y='Column', x='Value', ax=ax,orient='h')
+    show_values_on_bars_h(ax, decimal_places=0)
+    fig.show()
+
