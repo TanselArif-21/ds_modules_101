@@ -170,6 +170,7 @@ class LogisticRegressionClass:
 
         feature_interpretability_comparative_df = pd.DataFrame(comparative_dict).T
         feature_interpretability_comparative_df.columns = ['Prediction_average_or_without','Prediction_add1_or_with']
+        feature_interpretability_comparative_df['diff'] = feature_interpretability_comparative_df['Prediction_add1_or_with'] - feature_interpretability_comparative_df['Prediction_average_or_without']
         self.feature_interpretability_comparative_df = feature_interpretability_comparative_df
 
         # get a base probability (this is just the average probability)
