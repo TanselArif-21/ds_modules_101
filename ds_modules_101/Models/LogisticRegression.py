@@ -234,6 +234,25 @@ class LogisticRegressionClass:
 
         return result
 
+    def predict_from_original(self,df):
+        df = self.prepare_categories(df, self.response, drop=False)
+        all_cols = []
+        try:
+            all_cols = list(self.X_with_feature_selection.columns)
+        except:
+            all_cols = list(self.X.columns)
+
+        for col in all_cols:
+            if col not in df.columns:
+                df[col] = 0
+
+        res = None
+        try:
+            res = self.result_with_feature_selection
+        except:
+            res = self.result
+
+        return res.predict(df[all_cols])
 
     def log_reg(self,df=None):
         if df is None:
@@ -632,6 +651,14 @@ auc = 0.85'''
 
     assert (result_required == result_actual)
 
+    result_required = [0.18, 0.18, 0.16, 0.15, 0.13, 0.13, 0.13, 0.13, 0.12]
+    result_actual = sorted(list(my_logistic_regresion_class.predict_from_original(df)))[:-10:-1]
+
+    result_required = list(map(lambda x: round(x, 2), result_required))
+    result_actual = list(map(lambda x: round(x, 2), result_actual))
+
+    assert (result_required == result_actual)
+
     print('Success!')
 
 
@@ -701,6 +728,13 @@ auc = 0.85'''
 
     assert (result_required == result_actual)
 
+    result_required = [0.7, 0.65, 0.64, 0.64, 0.64, 0.62, 0.61, 0.61, 0.59]
+    result_actual = sorted(list(my_logistic_regresion_class.predict_from_original(df)))[:-10:-1]
+
+    result_required = list(map(lambda x: round(x, 2), result_required))
+    result_actual = list(map(lambda x: round(x, 2), result_actual))
+
+    assert (result_required == result_actual)
 
     print('Success!')
 
