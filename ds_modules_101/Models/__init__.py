@@ -2,5 +2,6 @@ from .ordinal_logistic_regression import OrderedModel
 from .oaxaca import Oaxaca
 from .logreg import log_reg_basic,log_reg,log_reg_with_feature_selection,log_reg_diagnostic_performance,log_reg_diagnostic_correlations,logistic_regression_get_report
 from .LogisticRegression import LogisticRegressionClass
+from .LinearRegression import LinearRegressionClass
 from .MultinomialLogisticRegression import MultinomialLogisticRegressionClass
 from .Microsimulation import MicrosimulationClass
