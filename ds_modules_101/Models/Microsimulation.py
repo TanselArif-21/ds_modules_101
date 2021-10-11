@@ -2,7 +2,6 @@ import pandas as pd
 import numpy as np
 import seaborn as sns
 import LogisticRegression
-import MultinomialLogisticRegression
 import os
 import sys
 
@@ -238,6 +237,7 @@ class MicrosimulationClass:
 
 if __name__ == '__main__':
     import matplotlib.pyplot as plt
+    import LogisticRegression
     current_dir = '/'.join(sys.path[0].split('/')[:-1])  # sys.path[0]
     data_dir = os.path.join(current_dir, 'Data', 'HR')
     hr_csv = os.path.join(data_dir, 'HR.csv')
