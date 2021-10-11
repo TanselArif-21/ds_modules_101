@@ -1,7 +1,6 @@
 import pandas as pd
 import numpy as np
 import seaborn as sns
-import LogisticRegression
 import os
 import sys
 
