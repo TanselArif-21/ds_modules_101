@@ -233,6 +233,12 @@ class MicrosimulationClass:
 
         return next_df
 
+    def finalise(self):
+        self.evolved_df = pd.concat(self.dfs_projected)
+        self.summary_df = self.evolved_df.groupby(by='Year').describe()
+        self.summary_df.columns = [' '.join(col).strip() for col in self.summary_df.columns.values]
+        self.summary_df = self.summary_df.T.reset_index()
+
 
 if __name__ == '__main__':
     import matplotlib.pyplot as plt
@@ -359,26 +365,29 @@ if __name__ == '__main__':
     print('1')
     my_microsimulation.advance()
     print('2')
-    my_microsimulation.advance()
-    print('3')
-    my_microsimulation.advance()
-    print('4')
-    my_microsimulation.advance()
-    print('5')
-    my_microsimulation.advance()
-    print('6')
-    my_microsimulation.advance()
-    print('7')
-    my_microsimulation.advance()
-    print('8')
-    my_microsimulation.advance()
-    print('9')
-    my_microsimulation.advance()
-    print('10')
-    my_microsimulation.advance()
-    print('11')
-    my_microsimulation.advance()
-    print('12')
+    # my_microsimulation.advance()
+    # print('3')
+    # my_microsimulation.advance()
+    # print('4')
+    # my_microsimulation.advance()
+    # print('5')
+    # my_microsimulation.advance()
+    # print('6')
+    # my_microsimulation.advance()
+    # print('7')
+    # my_microsimulation.advance()
+    # print('8')
+    # my_microsimulation.advance()
+    # print('9')
+    # my_microsimulation.advance()
+    # print('10')
+    # my_microsimulation.advance()
+    # print('11')
+    # my_microsimulation.advance()
+    # print('12')
+
+    my_microsimulation.finalise()
+
     final_df = pd.concat(my_microsimulation.dfs_projected, axis=0,ignore_index=True).reset_index(drop=True)
     final_df_grouped = final_df[['Year', 'satisfaction_level']].groupby(by='Year').mean().reset_index()
     sns.lineplot(x=final_df_grouped['Year'], y=final_df_grouped['satisfaction_level'])
