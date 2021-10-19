@@ -9,7 +9,6 @@ import statsmodels.api as sm
 import warnings
 import time
 from sklearn.linear_model import LogisticRegression
-from sklearn.preprocessing import LabelEncoder
 
 class LogisticRegressionClass:
     def __init__(self,df,response,sig_level=0.05,max_iter=500,cols_to_keep_static=[],cols_to_try_individually=[]):
@@ -289,9 +288,10 @@ class LogisticRegressionClass:
 
         return result
 
-    def log_reg_with_feature_selection(self,df=None,run_for=0,verbose=True):
+    def log_reg_with_feature_selection(self,df=None,run_for=0,verbose=True,max_pr2=None,max_features=None):
         # start the timer in case the is a time limit specified
         start_time = time.time()
+        n_features = 0
 
         if df is None:
             # get rid of nans. There should be no nans. Imputation should be performed prior to this point
@@ -406,6 +406,8 @@ class LogisticRegressionClass:
             # add the candidate to the permanent list
             full_feature_set.append(next_col)
 
+            n_features = n_features+1
+
             # show progress
             if verbose:
                 print('********Adding {} with prsquared = {}********'.format(next_col, last_prsquared))
@@ -415,6 +417,14 @@ class LogisticRegressionClass:
 
             # remove the chosen candidate from the remaining features
             remaining.remove(next_col)
+
+            # if the user has specified a max r2 then stop if it has been reached
+            if (max_pr2 is not None) and (max_pr2 <= last_prsquared):
+                break
+
+            # if the user has specified a max number of features then stop if it has been reached
+            if (max_features is not None) and (max_features <= n_features):
+                break
 
             # check if it's not taking too long
             if (time.time() - start_time > run_for) and (run_for > 0):
@@ -927,6 +937,100 @@ def unit_test_10():
 
     print('Success!')
 
+
+def unit_test_11():
+    print('Unit test 11...')
+    import sys
+    import os
+    import warnings
+
+    np.random.seed(101)
+    #warnings.filterwarnings("ignore")
+
+    current_dir = '/'.join(sys.path[0].split('/')[:-1])  # sys.path[0]
+    data_dir = os.path.join(current_dir, 'Data', 'titanic')
+    titanic_csv = os.path.join(data_dir, 'titanic.csv')
+    df = pd.read_csv(titanic_csv)
+    df = df[['Survived', 'Pclass', 'Sex', 'Age', 'SibSp','Parch', 'Fare']]
+    df.loc[1,'Survived'] = np.nan
+    for col in df.columns:
+        if col in ['Pclass','Parch']:
+            df[col] = df[col].astype('str')
+    my_logistic_regresion_class = LogisticRegressionClass(df,'Survived',sig_level=0.05,cols_to_keep_static=['Pclass'])
+    my_logistic_regresion_class.log_reg_with_feature_selection(verbose=True,max_pr2=0.32)
+
+    result_required = [1.25, -1.31, -2.58, 2.52, -0.04]
+    result_actual = list(my_logistic_regresion_class.result_with_feature_selection.params)
+
+    result_required = list(map(lambda x: round(x, 2), result_required))
+    result_actual = list(map(lambda x: round(x, 2), result_actual))
+
+    assert (sorted(result_required) == sorted(result_actual))
+
+    print('Success!')
+
+def unit_test_12():
+    print('Unit test 12...')
+    import sys
+    import os
+    import warnings
+
+    np.random.seed(101)
+    #warnings.filterwarnings("ignore")
+
+    current_dir = '/'.join(sys.path[0].split('/')[:-1])  # sys.path[0]
+    data_dir = os.path.join(current_dir, 'Data', 'titanic')
+    titanic_csv = os.path.join(data_dir, 'titanic.csv')
+    df = pd.read_csv(titanic_csv)
+    df = df[['Survived', 'Pclass', 'Sex', 'Age', 'SibSp','Parch', 'Fare']]
+    df.loc[1,'Survived'] = np.nan
+    for col in df.columns:
+        if col in ['Pclass','Parch']:
+            df[col] = df[col].astype('str')
+    my_logistic_regresion_class = LogisticRegressionClass(df,'Survived',sig_level=0.05,cols_to_keep_static=['Pclass'])
+    my_logistic_regresion_class.log_reg_with_feature_selection(verbose=True,max_features=2)
+
+    result_required = [1.25, -1.31, -2.58, 2.52, -0.04]
+    result_actual = list(my_logistic_regresion_class.result_with_feature_selection.params)
+
+    result_required = list(map(lambda x: round(x, 2), result_required))
+    result_actual = list(map(lambda x: round(x, 2), result_actual))
+
+    assert (sorted(result_required) == sorted(result_actual))
+
+    print('Success!')
+
+def unit_test_13():
+    print('Unit test 13...')
+    import sys
+    import os
+    import warnings
+
+    np.random.seed(101)
+    #warnings.filterwarnings("ignore")
+
+    current_dir = '/'.join(sys.path[0].split('/')[:-1])  # sys.path[0]
+    data_dir = os.path.join(current_dir, 'Data', 'titanic')
+    titanic_csv = os.path.join(data_dir, 'titanic.csv')
+    df = pd.read_csv(titanic_csv)
+    df = df[['Survived', 'Pclass', 'Sex', 'Age', 'SibSp','Parch', 'Fare']]
+    df.loc[1,'Survived'] = np.nan
+    for col in df.columns:
+        if col in ['Pclass','Parch']:
+            df[col] = df[col].astype('str')
+    my_logistic_regresion_class = LogisticRegressionClass(df,'Survived',sig_level=0.05,cols_to_keep_static=['Pclass'])
+    my_logistic_regresion_class.log_reg_with_feature_selection(verbose=True,max_features=2,max_pr2=0.3)
+
+    result_required = [-0.24, -0.92, -1.97, 2.57]
+    result_actual = list(my_logistic_regresion_class.result_with_feature_selection.params)
+
+    result_required = list(map(lambda x: round(x, 2), result_required))
+    result_actual = list(map(lambda x: round(x, 2), result_actual))
+
+    assert (sorted(result_required) == sorted(result_actual))
+
+    print('Success!')
+
 if __name__ == '__main__':
     unit_test_1()
     unit_test_2()
@@ -938,3 +1042,6 @@ if __name__ == '__main__':
     unit_test_8()
     unit_test_9()
     unit_test_10()
+    unit_test_11()
+    unit_test_12()
+    unit_test_13()
