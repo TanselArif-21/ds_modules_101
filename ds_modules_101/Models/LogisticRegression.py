@@ -52,7 +52,15 @@ class LogisticRegressionClass:
 
         return True
 
-    def log_reg_diagnostic_performance(self,X,y):
+    def log_reg_diagnostic_performance(self,X=None,y=None):
+        if X is None:
+            try:
+                X = self.X_with_feature_selection
+                y = self.y_with_feature_selection
+            except:
+                X = self.X
+                y = self.y
+
         cvs = cross_validate(LogisticRegression(max_iter=self.max_iter), X, y, cv=5,
                              scoring=['accuracy', 'f1', 'precision', 'recall', 'roc_auc'])
         s = """Performance (0 is negative 1 is positive)\n5-Fold Cross Validation Results:\nTest Set accuracy = {}\nf1 = {}\nprecision = {}\nrecall = {}\nauc = {}""".format(
@@ -69,8 +77,15 @@ class LogisticRegressionClass:
 
         return s
 
-    def log_reg_diagnostic_correlations(self,X):
+    def log_reg_diagnostic_correlations(self,X=None):
         print("Correlations")
+
+        if X is None:
+            try:
+                X = self.X_with_feature_selection
+            except:
+                X = self.X
+
         fig = plt.figure(figsize=(10, 10))
         ax = fig.add_subplot(1, 1, 1)
 
@@ -82,7 +97,20 @@ class LogisticRegressionClass:
 
         return fig,ax
 
-    def logistic_regression_get_report(self,model,X,y,verbose=True):
+    def logistic_regression_get_report(self,model=None,X=None,y=None,verbose=True):
+        if model is None:
+            try:
+                model = self.result_with_feature_selection
+            except:
+                model = self.result
+
+        if X is None:
+            try:
+                X = self.X_with_feature_selection
+                y = self.y_with_feature_selection
+            except:
+                X = self.X
+                y = self.y
 
         preds = model.predict(X)
         df_classification_report = pd.DataFrame(classification_report(y, preds>0.5, output_dict=True))
@@ -235,17 +263,19 @@ class LogisticRegressionClass:
 
     def predict_from_original(self,df):
         df = self.prepare_categories(df, self.response, drop=False)
-        all_cols = []
+
         try:
             all_cols = list(self.X_with_feature_selection.columns)
         except:
             all_cols = list(self.X.columns)
 
+        if 'const' not in df.columns:
+            df['const'] = 1
+
         for col in all_cols:
             if col not in df.columns:
                 df[col] = 0
 
-        res = None
         try:
             res = self.result_with_feature_selection
         except:
@@ -513,8 +543,7 @@ f1 = 0.73
 precision = 0.76
 recall = 0.7
 auc = 0.85'''
-    result_actual = my_logistic_regresion_class.log_reg_diagnostic_performance(my_logistic_regresion_class.X,
-                                                               my_logistic_regresion_class.y)
+    result_actual = my_logistic_regresion_class.log_reg_diagnostic_performance()
 
     assert (result_required == result_actual)
 
@@ -661,7 +690,7 @@ auc = 0.85'''
 
     assert (result_required == result_actual)
 
-    result_required = [0.18, 0.18, 0.16, 0.15, 0.13, 0.13, 0.13, 0.13, 0.12]
+    result_required = [0.98, 0.98, 0.98, 0.97, 0.97, 0.97, 0.97, 0.97, 0.97]
     result_actual = sorted(list(my_logistic_regresion_class.predict_from_original(df)))[:-10:-1]
 
     result_required = list(map(lambda x: round(x, 2), result_required))
@@ -728,17 +757,14 @@ auc = 0.85'''
     assert (result_required == result_actual)
 
     result_required = [365, 59, 78, 212]
-    result_actual = my_logistic_regresion_class.logistic_regression_get_report(
-        my_logistic_regresion_class.result_with_feature_selection,
-        my_logistic_regresion_class.X_with_feature_selection,
-        my_logistic_regresion_class.y_with_feature_selection,verbose=False)
+    result_actual = my_logistic_regresion_class.logistic_regression_get_report(verbose=False)
 
     result_required = list(map(lambda x: round(x, 2), result_required))
     result_actual = list(map(lambda x: round(x, 2), list(np.array(result_actual).flatten())))
 
     assert (result_required == result_actual)
 
-    result_required = [0.7, 0.65, 0.64, 0.64, 0.64, 0.62, 0.61, 0.61, 0.59]
+    result_required = [0.98, 0.97, 0.97, 0.97, 0.97, 0.97, 0.97, 0.97, 0.97]
     result_actual = sorted(list(my_logistic_regresion_class.predict_from_original(df)))[:-10:-1]
 
     result_required = list(map(lambda x: round(x, 2), result_required))
