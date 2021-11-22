@@ -1057,6 +1057,32 @@ def unit_test_13():
 
     print('Success!')
 
+
+def unit_test_14():
+    print('Unit test 14...')
+    import sys
+    import os
+    import warnings
+
+    np.random.seed(101)
+    #warnings.filterwarnings("ignore")
+
+    current_dir = '/'.join(sys.path[0].split('/')[:-1])  # sys.path[0]
+    data_dir = os.path.join(current_dir, 'Data', 'titanic')
+    titanic_csv = os.path.join(data_dir, 'titanic.csv')
+    df = pd.read_csv(titanic_csv)
+    df = df[['Survived', 'Pclass', 'Sex', 'Age', 'SibSp','Parch', 'Fare']]
+    df['Survived'] = df['Survived'].astype('str')
+    my_logistic_regresion_class = LogisticRegressionClass(df,'Survived',sig_level=0.05)
+    my_logistic_regresion_class.log_reg()
+
+    result_required = '\nThe response variable should be binary 0 and 1 and numeric type (i.e. int)'
+    result_actual = my_logistic_regresion_class.error_message
+    assert (result_required == result_actual)
+
+
+    print('Success!')
+
 if __name__ == '__main__':
     unit_test_1()
     unit_test_2()
@@ -1071,3 +1097,4 @@ if __name__ == '__main__':
     unit_test_11()
     unit_test_12()
     unit_test_13()
+    unit_test_14()
