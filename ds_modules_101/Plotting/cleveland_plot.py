@@ -90,27 +90,89 @@ def cleveland_plot(df,group_by,grp_col,val_col,groups,sortbycol=None,min_group_s
     
     return fig,out_t
 
-def cleveland_plot_v2(df,y ,comparison = None,
-                      order_by = None,color1 = '#d9d9d9',color2 = '#d57883',
-                      dot_colors = None,
-                      dot_sizes = None,
-                      annot_location_x = 2,annot_location_y = - 0.02,legend_location_x = 1,legend_location_y = 1.01,
-                      title = 'A cleveland plot',title_location = 'left',xlim = None,annotation_type = 'normal',
-                      annotation_decimals = 0,legend_min_size = 10,legend_max_size = 10,legend_title_size = 10,
-                      legend_font_size = 10,show_dot_size_legend = True):
+def cleveland_plot_v2(df,y ,comparison,order_by = None,change_col = None,
+                      color1 = '#d9d9d9',color2 = '#d57883',
+                      dot_colors = None,dot_sizes = None,dot_size_adjustment=None,dot_color_seed=52,
+                      annot_location_x = 2,annot_location_y = - 0.02,annotation_decimals = 0,
+                      annotation_type = 'normal',annotation_size=20,annotation_sign=True,annotation_append='%',
+                      legend_location_x = 1,legend_location_y = 1.01,legend_min_size = 10,legend_max_size = 10,
+                      legend_title_size = 10,legend_font_size = 10,show_dot_size_legend = True,
+                      title = 'A cleveland plot',title_location = 'left',
+                      xlim = None,
+                      figsize=(10,10),
+                      change_lim=None,xlabel=None,ylabel=None):
+    '''
+    A function to create a cleveland plot.
+    
+    :param df: A dataframe. Must have at least 3 columns 2 of which have to be numerical
+    :param y: The column containing the items to compare between the groups. They will be on the y-axis
+    :param comparison: The columns which are to be the comparison groups. Minimum 2
+    :param order_by: The column name to order the results by. Typically one of the column names in comparison
+    :param change_col: The name of the column containing the differences between the groups. Usually only used when there are 2 groups
+    :param color1: The colour of the line connecting the 2dots
+    :param color2: The colour of the line connecting the two dots only if the first group in comparison is less than the second. Only used if there are 2 groups
+    :param dot_colors: A list of hex colours i.e. ['#5595ce','#592000','#516000'] when comparison has 3 groups. This list can be larger than comparison - the unused ones are discarded
+    :param dot_sizes: Can either be a list of sizes i.e. [200,500,100] for 3 groups meaning each dot in a group is the same or it can be a list of lists i.e. [df['size_col_1'],df['size_col_2'],df['size_col_3']]
+    :param dot_size_adjustment: Sometimes the dots are too large or too small. Use this to scale them without affecting the legend
+    :param dot_color_seed: If dot_colors is not supplies, randomly generated colors are used using this numpy seed
+    :param annot_location_x: x location shift of the annotations. Only valid if change_col is supplied
+    :param annot_location_y: y location shift of the annotations. Only valid if change_col is supplied
+    :param annotation_decimals: The number of decimal places in the annotations
+    :param annotation_type: Can be 'percentage', 'normal' or None
+    :param annotation_size: Font size of the annotations
+    :param annotation_sign: True or False. Specifies whether the sign or the annotation is to be used. If the change column is to be a change and not an absolute value, this should be True
+    :param annotation_append: A string to append at the end of an annotation. Can be any string such as % or GBP etc...
+    :param legend_location_x: x location of the dot legend only valid if show_dot_size_legend is True
+    :param legend_location_y: x location of the dot legend only valid if show_dot_size_legend is True
+    :param legend_min_size: The size of the minimum dot in the legend
+    :param legend_max_size: The size of the minimum dot in the legend
+    :param legend_title_size: The fontsize of the legend title
+    :param legend_font_size: The fontsize of the text in the legend
+    :param show_dot_size_legend: True or False. Whether to show the dot size legend or not
+    :param title: The title of the plot
+    :param title_location: The location of the title. 'left' or 'right' or 'center'
+    :param xlim: The x limits of the plot
+    :param figsize: The size of the figure. i.e. (10,10)
+    :param change_lim: Only show annotations if their values are withing this range. i.e. (-3,3)
+    :param xlabel: The x label
+    :param ylabel: The y label
+    '''
 
+    if len(comparison) < 2:
+        print('comparison has less than 2 column names. You must have at least 2 groups to compare')
+        
     # sort the plot values
     if order_by is not None:
-        df = df.set_index(y).sort_values(order_by)
+        df = df.sort_values(order_by).set_index(y)
     else:
         df = df.set_index(y)
+        
+    # assign None values
+    if dot_colors is None:
+        np.random.seed(dot_color_seed)
+        r = lambda: np.random.randint(0,255)
+        dot_colors = ['#%02X%02X%02X' % (r(),r(),r()) for i in range(255)]
+    
+    if annot_location_x is None:
+        annot_location_x = 0.1
+    
+    if annot_location_y is None:
+        annot_location_y = -0.1
+        
+    if dot_sizes is None:
+        dot_sizes = [200]*len(comparison)
+        
+    if change_col is None:
+        if annotation_type is not None:
+            print('You cannot have an annotation type without having a change_col!')
+        annotation_type = None
 
     # get the minimum for each row between the comparison groups
     df['min'] = df[comparison].min(axis=1)
     df['max'] = df[comparison].max(axis=1)
 
     # get the figure
-    plt.figure(figsize=(12, 6))
+    plt.figure(figsize=figsize)
     y_range = np.arange(1, len(df.index) + 1)
 
     # if there're only 2 groups then we can color the line connecting them depending on which one is larger
@@ -124,22 +186,51 @@ def cleveland_plot_v2(df,y ,comparison = None,
                color=colors, lw=10)
 
     # draw the dots
-    for grp, c, s in zip(comparison, dot_colors, dot_sizes):
+    dot_sizes_for_show = dot_sizes
+    if dot_size_adjustment is not None:
+        dot_sizes_for_show = [x*dot_size_adjustment for x in dot_sizes]
+    for grp, c, s in zip(comparison, dot_colors, dot_sizes_for_show):
         plt.scatter(df[grp], y_range, color=c, s=s, label=grp, zorder=3)
 
     # do the annotations
     if annotation_type == 'percentage':
         for (_, row), y in zip(df.iterrows(), y_range):
-            val = round(row['change'], annotation_decimals) * 100
+            val = round(row[change_col]*100, annotation_decimals)
+            sign = ''
+            if annotation_sign:
+                sign = '+' if val > 0 else ''
+                
             if annotation_decimals == 0:
                 val = int(val)
-            plt.annotate(str(val) + '%', (row["max"] + annot_location_x, y + annot_location_y))
+                
+            if change_lim is not None:
+                if (val > change_lim[0]) and (val < change_lim[1]):
+                    val = ''
+                    sign = ''
+                else:
+                    val = (str(val)+'%').replace('.0%','%')
+            else:
+                val = (str(val)+'%').replace('.0%','%')
+            
+            plt.annotate(sign + val, (row["max"] + annot_location_x, y + annot_location_y),fontsize=annotation_size)
     elif annotation_type == 'normal':
         for (_, row), y in zip(df.iterrows(), y_range):
-            val = round(row['change'], annotation_decimals)
+            val = round(row[change_col], annotation_decimals)
+            sign = ''
+            if annotation_sign:
+                sign = '+' if val > 0 else ''
             if annotation_decimals == 0:
                 val = int(val)
-            plt.annotate(str(val), (row["max"] + annot_location_x, y + annot_location_y))
+                
+            if change_lim is not None:
+                if (val > change_lim[0]) and (val < change_lim[1]):
+                    val = ''
+                    sign = ''
+                val = str(val)
+            else:
+                val = str(val)
+                
+            plt.annotate(sign + val+annotation_append, (row["max"] + annot_location_x, y + annot_location_y),fontsize=annotation_size)
 
     # get the data points the smallest/biggest dot contains
     min_size = np.min(np.array(dot_sizes).squeeze())
@@ -179,6 +270,12 @@ def cleveland_plot_v2(df,y ,comparison = None,
 
     # get the figure
     f = plt.gcf()
+    a = f.gca()
+    if xlabel is not None:
+        a.set_xlabel(xlabel)
+        
+    if ylabel is not None:
+        a.set_xlabel(yxlabel)
 
     return f
 
