@@ -11,7 +11,8 @@ import time
 from sklearn.linear_model import LogisticRegression
 
 class LogisticRegressionClass:
-    def __init__(self,df,response,sig_level=0.05,max_iter=500,cols_to_keep_static=[],cols_to_try_individually=[]):
+    def __init__(self,df,response,sig_level=0.05,max_iter=500,cols_to_keep_static=[],cols_to_try_individually=[],
+                 regularization_C=None):
         '''
         :param df: a dataframe
         :param response: a string. This must be an existing column in df
@@ -20,6 +21,7 @@ class LogisticRegressionClass:
         :param cols_to_keep_static: a list. Used in forward selection to not omit these columns
         :param cols_to_try_individually: a list. The columns to test in a regression one at a time to identify which
             one has the greatest relationship with the response controlled for the cols_to_keep_static
+        :param C: Regularisation contant for the l1 regulatisation. The weight multiplying the penalty term
         '''
 
         # attach attributes to the object
@@ -31,6 +33,8 @@ class LogisticRegressionClass:
         self.error_message = ''
         self.cols_to_keep_static = cols_to_keep_static
         self.cols_to_try_individually = cols_to_try_individually
+        self.regularization_C = regularization_C
+        self.exception_message = None
 
     def prepare_data(self,df,response):
         y = df[response]
@@ -252,7 +256,10 @@ class LogisticRegressionClass:
 
         model = sm.Logit(y, X)
 
-        result = model.fit(disp=0,maxiter=self.max_iter)
+        if self.regularization_C is None:
+            result = model.fit(disp=0,maxiter=self.max_iter)
+        else:
+            result = model.fit_regularized(disp=0, maxiter=self.max_iter,alpha=self.regularization_C)
 
         self.basic_result = result
         self.basic_model = model
@@ -320,6 +327,7 @@ class LogisticRegressionClass:
 
     def log_reg_with_feature_selection(self,df=None,run_for=0,verbose=True,max_pr2=None,max_features=None):
         import warnings
+        self.params_with_convergence_errors = []
         # start the timer in case the is a time limit specified
         start_time = time.time()
         n_features = 0
@@ -411,6 +419,7 @@ class LogisticRegressionClass:
                         result = self.log_reg_basic(df1[this_feature_set + [self.response]])
                 except Exception as e:
                     self.exception_message = e
+                    self.params_with_convergence_errors.append(col)
                     remaining.remove(col)
                     continue
 
@@ -469,6 +478,8 @@ class LogisticRegressionClass:
 
         self.final_feature_set = full_feature_set
         self.result_with_feature_selection = final_result
+        if (len(self.params_with_convergence_errors) > 0) & verbose:
+            print('There were converge errors. See params_with_convergence_errors for the list of columns')
 
         return final_result
 
@@ -1105,12 +1116,51 @@ def unit_test_15():
     df['Survived'] = df['Survived'].astype('int')
     my_logistic_regresion_class = LogisticRegressionClass(df,'Survived',sig_level=0.05,max_iter=5)
     my_logistic_regresion_class.log_reg_with_feature_selection()
-    print(my_logistic_regresion_class.exception_message)
 
     result_required = 'Singular matrix'
     result_actual = str(my_logistic_regresion_class.exception_message)
     assert (result_required == result_actual)
 
+
+    print('Success!')
+
+def unit_test_16():
+    print('Unit test 16...')
+    import sys
+    import os
+    import warnings
+
+    np.random.seed(101)
+    #warnings.filterwarnings("ignore")
+
+    current_dir = '/'.join(sys.path[0].split('/')[:-1])  # sys.path[0]
+    data_dir = os.path.join(current_dir, 'Data', 'titanic')
+    titanic_csv = os.path.join(data_dir, 'titanic.csv')
+    df = pd.read_csv(titanic_csv)
+    df = df[['Survived', 'Pclass', 'Sex', 'Age', 'SibSp','Parch', 'Fare']]
+    df['Survived'] = df['Survived'].astype('int')
+    my_logistic_regresion_class = LogisticRegressionClass(df,'Survived',sig_level=0.05,max_iter=500,regularization_C=0)
+    my_logistic_regresion_class.log_reg()
+
+    result_required = [5.389003106421364, -1.2422486253277716, -0.043952595897772714, -0.3757548705084541, -0.0619373664480337, 0.002160033540727774, -2.6348448348873723]
+    result_actual = list(my_logistic_regresion_class.result.params)
+
+    result_required = list(map(lambda x: round(x, 2), result_required))
+    result_actual = list(map(lambda x: round(x, 2), result_actual))
+
+    assert (sorted(result_required) == sorted(result_actual))
+
+    my_logistic_regresion_class = LogisticRegressionClass(df, 'Survived', sig_level=0.05, max_iter=500,
+                                                          regularization_C=2)
+    my_logistic_regresion_class.log_reg()
+
+    result_required = [4.405751074517862, -1.019718809617492, -0.035243106198760185, -0.3133464821793585, -0.03593459183804765, 0.0036461299221873813, -2.4156954170686182]
+    result_actual = list(my_logistic_regresion_class.result.params)
+
+    result_required = list(map(lambda x: round(x, 2), result_required))
+    result_actual = list(map(lambda x: round(x, 2), result_actual))
+
+    assert (sorted(result_required) == sorted(result_actual))
 
     print('Success!')
 
@@ -1130,3 +1180,4 @@ if __name__ == '__main__':
     unit_test_13()
     unit_test_14()
     unit_test_15()
+    unit_test_16()
