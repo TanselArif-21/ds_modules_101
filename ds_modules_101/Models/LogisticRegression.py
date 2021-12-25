@@ -319,6 +319,7 @@ class LogisticRegressionClass:
         return result
 
     def log_reg_with_feature_selection(self,df=None,run_for=0,verbose=True,max_pr2=None,max_features=None):
+        import warnings
         # start the timer in case the is a time limit specified
         start_time = time.time()
         n_features = 0
@@ -405,8 +406,11 @@ class LogisticRegressionClass:
                 # when categorical variables are dummified and you add both variables you get a singular matrix
                 this_feature_set = full_feature_set + [col]
                 try:
-                    result = self.log_reg_basic(df1[this_feature_set + [self.response]])
+                    with warnings.catch_warnings():
+                        warnings.filterwarnings("ignore")
+                        result = self.log_reg_basic(df1[this_feature_set + [self.response]])
                 except Exception as e:
+                    self.exception_message = e
                     remaining.remove(col)
                     continue
 
@@ -1083,6 +1087,33 @@ def unit_test_14():
 
     print('Success!')
 
+def unit_test_15():
+    print('Unit test 15...')
+    import sys
+    import os
+    import warnings
+
+    np.random.seed(101)
+    #warnings.filterwarnings("ignore")
+
+    current_dir = '/'.join(sys.path[0].split('/')[:-1])  # sys.path[0]
+    data_dir = os.path.join(current_dir, 'Data', 'titanic')
+    titanic_csv = os.path.join(data_dir, 'titanic.csv')
+    df = pd.read_csv(titanic_csv)
+    df = df[['Survived', 'Pclass', 'Sex', 'Age', 'SibSp','Parch', 'Fare']]
+    df['AllZeros'] = 0
+    df['Survived'] = df['Survived'].astype('int')
+    my_logistic_regresion_class = LogisticRegressionClass(df,'Survived',sig_level=0.05,max_iter=5)
+    my_logistic_regresion_class.log_reg_with_feature_selection()
+    print(my_logistic_regresion_class.exception_message)
+
+    result_required = 'Singular matrix'
+    result_actual = str(my_logistic_regresion_class.exception_message)
+    assert (result_required == result_actual)
+
+
+    print('Success!')
+
 if __name__ == '__main__':
     unit_test_1()
     unit_test_2()
@@ -1098,3 +1129,4 @@ if __name__ == '__main__':
     unit_test_12()
     unit_test_13()
     unit_test_14()
+    unit_test_15()
