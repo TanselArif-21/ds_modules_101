@@ -36,6 +36,12 @@ class LogisticRegressionClass:
         self.regularization_C = regularization_C
         self.exception_message = None
 
+        if regularization_C is None:
+            self.sklearn_model = LogisticRegression(max_iter=self.max_iter)
+        else:
+            self.sklearn_model = LogisticRegression(max_iter=self.max_iter, penalty='l1',
+                                                    C=1 / (self.regularization_C + 0.000000001), solver='liblinear')
+
     def prepare_data(self,df,response):
         y = df[response]
         X = df[list(filter(lambda x: x != response, df.columns))]
@@ -65,7 +71,10 @@ class LogisticRegressionClass:
                 X = self.X
                 y = self.y
 
-        cvs = cross_validate(LogisticRegression(max_iter=self.max_iter), X, y, cv=5,
+        # cvs = cross_validate(LogisticRegression(max_iter=self.max_iter), X, y, cv=5,
+        #                      scoring=['accuracy', 'f1', 'precision', 'recall', 'roc_auc'])
+
+        cvs = cross_validate(self.sklearn_model, X, y, cv=5,
                              scoring=['accuracy', 'f1', 'precision', 'recall', 'roc_auc'])
         s = """Performance (0 is negative 1 is positive)\n5-Fold Cross Validation Results:\nTest Set accuracy = {}\nf1 = {}\nprecision = {}\nrecall = {}\nauc = {}""".format(
             round(cvs['test_accuracy'].mean(), 2), round(cvs['test_f1'].mean(), 2),
@@ -1161,6 +1170,18 @@ def unit_test_16():
     result_actual = list(map(lambda x: round(x, 2), result_actual))
 
     assert (sorted(result_required) == sorted(result_actual))
+
+    result_required = '''Performance (0 is negative 1 is positive)
+5-Fold Cross Validation Results:
+Test Set accuracy = 0.78
+f1 = 0.72
+precision = 0.76
+recall = 0.69
+auc = 0.85'''
+
+    result_actual = my_logistic_regresion_class.log_reg_diagnostic_performance()
+
+    assert (result_required == result_actual)
 
     print('Success!')
 
