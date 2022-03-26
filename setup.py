@@ -5,7 +5,7 @@ with open('README.md') as readme_file:
 
 setup_args = dict(
     name='ds_modules_101',
-    version='0.6.15',
+    version='0.6.18',
     description="A small package to help with some routine Data Science activities",
     long_description_content_type="text/markdown",
     long_description=README,
@@ -26,7 +26,8 @@ install_requires = [
     'statsmodels>=0.12.2',
     'scipy',
     'scikit-learn',
-    'seaborn==0.11.2'
+    'seaborn==0.11.2',
+    'matplotlib>=3.0.0'
 ]
 
 if __name__ == '__main__':
