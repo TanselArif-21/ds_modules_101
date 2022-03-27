@@ -116,7 +116,7 @@ def stacked_bar_chart2(t,x_axis_name,col_to_stack_name,y_label = 'Proportion', x
                        x_label_size=15,y_label_size=15,title_size=10,suptitle_size=15,
                        annotation_size=20,legend_size=15,xtick_size=15,annotation_weight='bold',width = 0.70,
                        figsize=(10,10),suptitle_loc=None,calculation_column=None,calculation_method='sum',
-                       normalise_to_1=True,list_of_colors=None):
+                       normalise_to_1=True,list_of_colors=None,diagnostic=False):
 
     '''
     This function plots a fancy stacked bar chart and takes away a lot of the pre-processing required from the user.
@@ -314,6 +314,15 @@ def stacked_bar_chart2(t,x_axis_name,col_to_stack_name,y_label = 'Proportion', x
                         '{}%'.format(int(np.round(proportions[j][i] * 100, 0))),
                         ha='center', va='center', color='white', fontsize=annotation_size, fontweight=annotation_weight)
 
+    if diagnostic:
+        t_counts = t[[x_axis_name,col_to_stack_name]].value_counts().reset_index()
+        t_counts = t_counts.rename(columns={0:'Counts'})
+        print(t_counts)
+
+    #
+    # ax.text(0.5, 0.2,s , color='black',
+    #         bbox=dict(facecolor='none', edgecolor='black', boxstyle='round,pad=1'))
+
     return fig
 
 def show_values_on_bars(axs,fontsize=20,color='black',decimal_places = 2):
@@ -401,7 +410,7 @@ def stacked_bar_plot_test_2():
     fig = stacked_bar_chart2(df, x_axis_name='Pclass', col_to_stack_name='Embarked', y_label='Proportion',
                              title='Stacked bar plot', colormap='YlGn', title_color='grey',
                              suptitle='Stacked bar plot', suptitle_color='grey', legend_title='legend title',
-                             show_value_threshold=3, order_col='Pclass')
+                             show_value_threshold=3, order_col='Pclass',diagnostic=True)
     #fig.savefig('dfafd.png', bbox_inches='tight')
     plt.show()
 
