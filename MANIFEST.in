@@ -1,1 +1,3 @@
 include ds_modules_101\Data\titanic\titanic.csv
+include ds_modules_101\Data\ibd\IBD.csv
+include ds_modules_101\Data\HR\HR.csv
