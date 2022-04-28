@@ -20,12 +20,13 @@ class word_doc:
     '''
     Example Usage:
     from ds_modules_101.Utilities import word_doc
+    from ds_modules_101.Data import f_word_doc
+    from docx.shared import RGBColor
+    import pandas as pd
 
     # First create a word document to be a template
     # Get the template location
-    current_dir = '/'.join(sys.path[0].split('/')[:-1])  # sys.path[0]
-    data_dir = os.path.join(current_dir, 'Data', 'Docs')
-    template_path = os.path.join(data_dir, 'Word_Doc.docx')
+    template_path = f_word_doc
 
     # Create a dataframe
     df = pd.DataFrame(data=[[1,2,3,4],[10,20,30,40]],index=['bought','sold'],columns=['01','02','03','04'])

@@ -9,3 +9,5 @@ ibd_df = pd.read_csv(ibd_f)
 
 hr_f = pkg_resources.resource_filename(__name__, 'HR/HR.csv')
 hr_df = pd.read_csv(hr_f)
+
+f_word_doc = pkg_resources.resource_filename(__name__, 'Docs/Word_Doc.docx')
