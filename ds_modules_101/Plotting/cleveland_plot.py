@@ -97,10 +97,11 @@ def cleveland_plot_v2(df,y ,comparison,order_by = None,change_col = None,
                       annotation_type = 'normal',annotation_size=20,annotation_sign=True,annotation_append='%',
                       legend_location_x = 1,legend_location_y = 1.01,legend_min_size = 10,legend_max_size = 10,
                       legend_title_size = 10,legend_font_size = 10,show_dot_size_legend = True,
-                      title = 'A cleveland plot',title_location = 'left',
+                      title = 'A cleveland plot',title_size=20,title_color=None,title_location = 'left',
                       xlim = None,
                       figsize=(10,10),
-                      change_lim=None,xlabel=None,ylabel=None):
+                      change_lim=None,xlabel=None,xlabel_size=10,xlabel_color=None,ylabel=None,ylabel_size=10,
+                      ylabel_color=None):
     '''
     A function to create a cleveland plot.
     
@@ -130,12 +131,18 @@ def cleveland_plot_v2(df,y ,comparison,order_by = None,change_col = None,
     :param legend_font_size: The fontsize of the text in the legend
     :param show_dot_size_legend: True or False. Whether to show the dot size legend or not
     :param title: The title of the plot
+    :param title_size: The size of the title. i.e. 20
+    :param title_color: The color of the title. i.e. grey
     :param title_location: The location of the title. 'left' or 'right' or 'center'
     :param xlim: The x limits of the plot
     :param figsize: The size of the figure. i.e. (10,10)
     :param change_lim: Only show annotations if their values are withing this range. i.e. (-3,3)
     :param xlabel: The x label
+    :param xlabel_size: The x label size
+    :param xlabel_color: The color of the x label
     :param ylabel: The y label
+    :param ylabel_size: The y label size
+    :param ylabel_color: The color of the y label
     '''
 
     if len(comparison) < 2:
@@ -262,7 +269,7 @@ def cleveland_plot_v2(df,y ,comparison,order_by = None,change_col = None,
     # add a title to the plot
     plt.title(
         title,
-        loc=title_location)
+        loc=title_location,color=title_color,fontsize=title_size)
 
     # set the xlim if it was supplied
     if xlim is not None:
@@ -272,10 +279,10 @@ def cleveland_plot_v2(df,y ,comparison,order_by = None,change_col = None,
     f = plt.gcf()
     a = f.gca()
     if xlabel is not None:
-        a.set_xlabel(xlabel)
+        a.set_xlabel(xlabel,fontsize=xlabel_size,color=xlabel_color)
         
     if ylabel is not None:
-        a.set_xlabel(yxlabel)
+        a.set_ylabel(ylabel,fontsize=ylabel_size,color=ylabel_color)
 
     return f
 
@@ -548,6 +555,8 @@ def unit_test_3():
     # title
     title = 'A cleveland plot'
     title_location = 'left'
+    title_size = 20
+    title_color = 'grey'
 
     # xlim
     xlim = (0, 150)
@@ -573,10 +582,13 @@ def unit_test_3():
                       order_by=order_by, color1='#d9d9d9', color2='#d57883',
                       dot_colors=dot_colors,
                       dot_sizes=dot_sizes,
-                      annot_location_x=2, annot_location_y=- 0.02, legend_location_x=1, legend_location_y=1.01,
-                      title='A cleveland plot', title_location='left', xlim=xlim, annotation_type='normal',
+                      annot_location_x=2, annot_location_y=- 0.02, legend_location_x=legend_location_x,
+                      legend_location_y=legend_location_y,
+                      title='A cleveland plot',title_color=title_color,title_size=title_size, title_location=title_location,
+                      xlim=xlim, annotation_type='normal',
                       annotation_decimals=0, legend_min_size=10, legend_max_size=10, legend_title_size=10,
-                      legend_font_size=10, show_dot_size_legend=True)
+                      legend_font_size=10, show_dot_size_legend=show_dot_size_legend,ylabel='This is the ylabel',
+                          ylabel_size=30,ylabel_color='green')
 
     plt.show()
 
