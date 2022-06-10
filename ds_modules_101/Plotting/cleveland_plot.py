@@ -92,16 +92,17 @@ def cleveland_plot(df,group_by,grp_col,val_col,groups,sortbycol=None,min_group_s
 
 def cleveland_plot_v2(df,y ,comparison,order_by = None,change_col = None,
                       color1 = '#d9d9d9',color2 = '#d57883',
-                      dot_colors = None,dot_sizes = None,dot_size_adjustment=None,dot_color_seed=52,
+                      dot_colors = None,dot_sizes = None,dot_size_cols = None,dot_size_adjustment=None,dot_color_seed=52,
                       annot_location_x = 2,annot_location_y = - 0.02,annotation_decimals = 0,
                       annotation_type = 'normal',annotation_size=20,annotation_sign=True,annotation_append='%',
                       legend_location_x = 1,legend_location_y = 1.01,legend_min_size = 10,legend_max_size = 10,
                       legend_title_size = 10,legend_font_size = 10,show_dot_size_legend = True,
+                      dot_size_legend_loc_x=None,dot_size_legend_loc_y=None,
                       title = 'A cleveland plot',title_size=20,title_color=None,title_location = 'left',
                       xlim = None,
                       figsize=(10,10),
                       change_lim=None,xlabel=None,xlabel_size=10,xlabel_color=None,ylabel=None,ylabel_size=10,
-                      ylabel_color=None):
+                      ylabel_color=None,yticklabel_size=None,yticklabel_color=None):
     '''
     A function to create a cleveland plot.
     
@@ -114,6 +115,7 @@ def cleveland_plot_v2(df,y ,comparison,order_by = None,change_col = None,
     :param color2: The colour of the line connecting the two dots only if the first group in comparison is less than the second. Only used if there are 2 groups
     :param dot_colors: A list of hex colours i.e. ['#5595ce','#592000','#516000'] when comparison has 3 groups. This list can be larger than comparison - the unused ones are discarded
     :param dot_sizes: Can either be a list of sizes i.e. [200,500,100] for 3 groups meaning each dot in a group is the same or it can be a list of lists i.e. [df['size_col_1'],df['size_col_2'],df['size_col_3']]
+    :param dot_size_cols: A list of strings. The column names to use as dot sizes. This is an alternative to dot_sizes
     :param dot_size_adjustment: Sometimes the dots are too large or too small. Use this to scale them without affecting the legend
     :param dot_color_seed: If dot_colors is not supplies, randomly generated colors are used using this numpy seed
     :param annot_location_x: x location shift of the annotations. Only valid if change_col is supplied
@@ -130,6 +132,8 @@ def cleveland_plot_v2(df,y ,comparison,order_by = None,change_col = None,
     :param legend_title_size: The fontsize of the legend title
     :param legend_font_size: The fontsize of the text in the legend
     :param show_dot_size_legend: True or False. Whether to show the dot size legend or not
+    :param dot_size_legend_loc_x: Float. The x coordinate for the dot sizes legend
+    :param dot_size_legend_loc_y: Float. The y coordinate for the dot sizes legend
     :param title: The title of the plot
     :param title_size: The size of the title. i.e. 20
     :param title_color: The color of the title. i.e. grey
@@ -143,6 +147,8 @@ def cleveland_plot_v2(df,y ,comparison,order_by = None,change_col = None,
     :param ylabel: The y label
     :param ylabel_size: The y label size
     :param ylabel_color: The color of the y label
+    :param yticklabel_size: The size of the y tick labels
+    :param yticklabel_color: The color of the y tick labels
     '''
 
     if len(comparison) < 2:
@@ -168,11 +174,25 @@ def cleveland_plot_v2(df,y ,comparison,order_by = None,change_col = None,
         
     if dot_sizes is None:
         dot_sizes = [200]*len(comparison)
+
+    if dot_size_cols is not None:
+        dot_sizes = []
+        for col in dot_size_cols:
+            dot_sizes.append(df[col].copy())
+
+    if dot_size_legend_loc_x is None:
+        dot_size_legend_loc_x = 1
+
+    if dot_size_legend_loc_y is None:
+        dot_size_legend_loc_y = 0
         
     if change_col is None:
         if annotation_type is not None:
             print('You cannot have an annotation type without having a change_col!')
         annotation_type = None
+
+    if yticklabel_color is None:
+        yticklabel_color = 'black'
 
     # get the minimum for each row between the comparison groups
     df['min'] = df[comparison].min(axis=1)
@@ -252,7 +272,7 @@ def cleveland_plot_v2(df,y ,comparison,order_by = None,change_col = None,
                                   markerfacecolor='g', markersize=legend_max_size)]
 
         legend1 = plt.legend(handles=legend_elements, loc='lower right', title="Size", fontsize=legend_font_size,
-                             bbox_to_anchor=(1, 0))
+                             bbox_to_anchor=(dot_size_legend_loc_x, dot_size_legend_loc_y))
 
     # draw the main legend
     plt.legend(ncol=2, bbox_to_anchor=(legend_location_x, legend_location_y), loc="lower right",
@@ -264,7 +284,7 @@ def cleveland_plot_v2(df,y ,comparison,order_by = None,change_col = None,
         plt.setp(legend1.get_title(), fontsize=legend_title_size)
 
     # label the y ticks
-    plt.yticks(y_range, df.index)
+    plt.yticks(y_range, df.index,fontsize=yticklabel_size,color=yticklabel_color)
 
     # add a title to the plot
     plt.title(
@@ -481,7 +501,7 @@ def unit_test_2():
     plt.show()
 
 def unit_test_3():
-    print('Unit test 2...')
+    print('Unit test 3...')
 
     import numpy as np
     import pandas as pd
@@ -588,11 +608,131 @@ def unit_test_3():
                       xlim=xlim, annotation_type='normal',
                       annotation_decimals=0, legend_min_size=10, legend_max_size=10, legend_title_size=10,
                       legend_font_size=10, show_dot_size_legend=show_dot_size_legend,ylabel='This is the ylabel',
-                          ylabel_size=30,ylabel_color='green')
+                          ylabel_size=30,ylabel_color='green',yticklabel_size=20,yticklabel_color='grey')
+
+    plt.show()
+
+def unit_test_4():
+    print('Unit test 4...')
+
+    import numpy as np
+    import pandas as pd
+    import matplotlib.pyplot as plt
+    import seaborn as sns
+    import io
+    sns.set(style="whitegrid")  # set style
+
+    current_dir = '/'.join(sys.path[0].split('/')[:-1])  # sys.path[0]
+    data_dir = os.path.join(current_dir, 'Data', 'titanic')
+    titanic_csv = os.path.join(data_dir, 'titanic.csv')
+    df = pd.read_csv(titanic_csv)
+    df_orig = df.copy()
+    df_counts = df_orig[['Sex', 'Pclass', 'Fare']].groupby(['Sex', 'Pclass']).count().reset_index()
+    df_counts = df_counts.rename(columns={'Fare': 'Size'})
+
+    t = df[['Sex', 'Pclass', 'Fare']].copy()
+    t_male = t[t['Sex'] == 'male'][['Pclass', 'Fare']].copy()
+    t_male = t_male.rename(columns={'Fare': 'Fare_male'})
+    t_male = t_male.groupby(by='Pclass').mean().reset_index()
+    t_male = pd.merge(t_male, df_counts[df_counts['Sex'] == 'male'][['Pclass', 'Size']], how='inner', on='Pclass',
+                      suffixes=('', '_male'))
+    t_male = t_male.rename(columns={'Size': 'Size_male'})
+    t_female = t[t['Sex'] == 'female'][['Pclass', 'Fare']].copy()
+    t_female = t_female.rename(columns={'Fare': 'Fare_female'})
+    t_female = t_female.groupby(by='Pclass').mean().reset_index()
+    t_female.loc[t_female['Pclass'] == 3, 'Fare_female'] = t_female['Fare_female'] - 10
+    t_female = pd.merge(t_female, df_counts[df_counts['Sex'] == 'female'][['Pclass', 'Size']], how='inner', on='Pclass',
+                        suffixes=('', '_female'))
+    t_female = t_female.rename(columns={'Size': 'Size_female'})
+
+    t_other = t_female.drop(columns=['Size_female'])
+    t_other['Fare_female'] = t_other['Fare_female'] - 5
+    t_other = t_other.rename(columns={'Fare_female': 'Fare_other'})
+    t_other['Size_other'] = 200
+
+    df = pd.merge(t_male, t_female, how='inner', on='Pclass')
+    df = pd.merge(df, t_other, how='inner', on='Pclass')
+    df['change'] = df['Fare_female'] - df['Fare_male']
+
+    # the y axis
+    y = 'Pclass'
+
+    # the groups to compare
+    comparison = ['Fare_male', 'Fare_female', 'Fare_other']
+
+    # the column to order by
+    order_by = 'Fare_male'
+
+    # line color 1
+    color1 = '#d9d9d9'
+
+    # line color 2
+    color2 = '#d57883'
+
+    # dot colors
+    dot_colors = ['#0096d7', '#003953', '#003999']
+
+    # dot sizes can be list of lists
+    # dot_sizes = [200,200,200]
+    dot_sizes = [df['Size_male'], df['Size_female'], df['Size_other']]
+    dot_size_cols = ['Size_male','Size_female','Size_other']
+
+    # dot sizes legend location
+    dot_size_legend_loc_x = 1.12
+    dot_size_legend_loc_y = 0.9
+
+    # annotation location
+    annot_location_x = 2
+    annot_location_y = - 0.02
+
+    # legend location
+    legend_location_x = 1
+    legend_location_y = 1.01
+
+    # title
+    title = 'A cleveland plot'
+    title_location = 'left'
+    title_size = 20
+    title_color = 'grey'
+
+    # xlim
+    xlim = (0, 150)
+
+    # show annotation
+    annotation_type = 'normal'
+
+    # annotation decimal places to show
+    annotation_decimals = 0
+
+    # legend dot sizes
+    legend_min_size = 10
+    legend_max_size = 10
+
+    # legend sizes
+    legend_title_size = 10
+    legend_font_size = 10
+
+    # show legend for dot sizes
+    show_dot_size_legend = True
+
+    f = cleveland_plot_v2(df=df, y=y, comparison=comparison,
+                      order_by=order_by, color1='#d9d9d9', color2='#d57883',
+                      dot_colors=dot_colors,
+                      dot_sizes=dot_sizes,dot_size_cols=dot_size_cols,
+                      annot_location_x=2, annot_location_y=- 0.02, legend_location_x=legend_location_x,
+                      legend_location_y=legend_location_y,
+                      title='A cleveland plot',title_color=title_color,title_size=title_size, title_location=title_location,
+                      xlim=xlim, annotation_type='normal',
+                      annotation_decimals=0, legend_min_size=10, legend_max_size=10, legend_title_size=10,
+                      legend_font_size=10, show_dot_size_legend=show_dot_size_legend,
+                          dot_size_legend_loc_x=dot_size_legend_loc_x,dot_size_legend_loc_y=dot_size_legend_loc_y,
+                          ylabel='This is the ylabel',
+                          ylabel_size=30,ylabel_color='green',yticklabel_size=20,yticklabel_color='grey')
 
     plt.show()
 
 if __name__ == '__main__':
-    unit_test_1()
-    unit_test_2()
-    unit_test_3()
+    # unit_test_1()
+    # unit_test_2()
+    # unit_test_3()
+    unit_test_4()
