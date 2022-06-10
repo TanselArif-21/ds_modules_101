@@ -102,7 +102,8 @@ def cleveland_plot_v2(df,y ,comparison,order_by = None,change_col = None,
                       xlim = None,
                       figsize=(10,10),
                       change_lim=None,xlabel=None,xlabel_size=10,xlabel_color=None,ylabel=None,ylabel_size=10,
-                      ylabel_color=None,yticklabel_size=None,yticklabel_color=None):
+                      ylabel_color=None,yticklabel_size=10,yticklabel_color='black',
+                      xticklabel_size=10,xticklabel_color='black'):
     '''
     A function to create a cleveland plot.
     
@@ -285,6 +286,7 @@ def cleveland_plot_v2(df,y ,comparison,order_by = None,change_col = None,
 
     # label the y ticks
     plt.yticks(y_range, df.index,fontsize=yticklabel_size,color=yticklabel_color)
+    plt.xticks(fontsize=xticklabel_size, color=xticklabel_color)
 
     # add a title to the plot
     plt.title(
@@ -727,12 +729,13 @@ def unit_test_4():
                       legend_font_size=10, show_dot_size_legend=show_dot_size_legend,
                           dot_size_legend_loc_x=dot_size_legend_loc_x,dot_size_legend_loc_y=dot_size_legend_loc_y,
                           ylabel='This is the ylabel',
-                          ylabel_size=30,ylabel_color='green',yticklabel_size=20,yticklabel_color='grey')
+                          ylabel_size=30,ylabel_color='green',yticklabel_size=20,yticklabel_color='grey',
+                          xticklabel_size=20,xticklabel_color='grey')
 
     plt.show()
 
 if __name__ == '__main__':
-    # unit_test_1()
-    # unit_test_2()
-    # unit_test_3()
+    unit_test_1()
+    unit_test_2()
+    unit_test_3()
     unit_test_4()
