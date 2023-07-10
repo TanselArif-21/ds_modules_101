@@ -5,3 +5,4 @@ from .LogisticRegression import LogisticRegressionClass
 from .LinearRegression import LinearRegressionClass
 from .MultinomialLogisticRegression import MultinomialLogisticRegressionClass
 from .Microsimulation import MicrosimulationClass
+from .TimeSeries import analyse_time_series,get_time_series
